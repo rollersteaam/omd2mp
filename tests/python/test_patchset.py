@@ -44,11 +44,14 @@ class Structure(unittest.TestCase):
         array walks past slots[1] into Session +0x68.. (dirty flag, localSlot, playerCount).
         The host's 0x86 slot-state broadcast (0x4B3700) did this: it read dirty flags from
         the stale array, never sent slot states, and real 2-player games hung on
-        'Waiting for other player...' / 'Connecting...'."""
+        'Waiting for other player...' / 'Connecting...'. So did the host's 0x83 session-data
+        writer (0x4B38D0): it keeps the Session in ebp (not a frame pointer) and walked the
+        old, empty array, so a joining client never found its own slot."""
         vas = {p["va"] for p in PATCHES}
         spans = [(p["va"], p["va"] + len(p["orig"]) // 2) for p in PATCHES]
         covered = lambda a: any(lo <= a < hi for lo, hi in spans)
-        for base, bound in [(0x4B3756, 0x4B379B), (0x4B1F3F, 0x4B1F9C), (0x4B259A, 0x4B25FB)]:
+        for base, bound in [(0x4B3756, 0x4B379B), (0x4B1F3F, 0x4B1F9C), (0x4B259A, 0x4B25FB),
+                            (0x4B3A14, 0x4B3A8C)]:
             self.assertIn(bound, vas, hex(bound))
             self.assertTrue(covered(base), f"loop bound {bound:#x} patched but base {base:#x} is not")
         for a in (0x4B2600, 0x4B2608, 0x4B2631, 0x4B2639, 0x4B2643, 0x4B2652, 0x4B2E0A, 0x4B2E20):

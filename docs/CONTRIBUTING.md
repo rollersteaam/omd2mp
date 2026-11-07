@@ -599,3 +599,35 @@ The log records each mock's state changes and the first time each message id arr
   this rarely matters for them. Three real clients joining at once could hit it.
 - The Steam lobby itself has only you in it. Anything that reads the Steam member list,
   not the session, still sees one player.
+
+## 14. Network trace (diagnosing real multiplayer games)
+
+Mock players never parse what the host sends them. So a bug in a message that only real
+clients read passes every mock test. An example is the host's 0x83 session-data writer
+(`0x4B38D0`), which walked the old slot array and sent clients an empty slot list. Real
+games then hang on "Waiting for other player..." (host) and "Connecting..." (client). To
+see what actually goes over the wire, turn on the trace on **every** machine:
+
+```ini
+[nettrace]
+enabled=1
+```
+
+Each game writes `omd2mp-net.log` next to `omd2mp.log` (`loader/src/nettrace.c`). The trace
+hooks RakPeer Send/Receive (it chains after the mocks, so it works with them too) and
+writes three kinds of line:
+
+- `SEND` / `RECV`: message ID and name, a per-ID counter, length, the peer GUID (for a
+  broadcast, the excluded GUID), and the first bytes. Handshake and session messages
+  (RakNet 0x09..0x1A, game 0x83/0x84/0x86/0x89/0x8c) dump 160 bytes and other messages 32.
+  Each (direction, ID) logs its first `full=` messages, then every `every=`th.
+- `SESSION`: on any change, is_host, connection count, the accept flag, `[0xB9D10C]`,
+  localSlot, playerCount, and every slot (guid, state, flags) in both the vanilla array
+  (`old[]`, +0x38) and the relocated one (`new[]`, +0x36068). A slot that changes only in
+  `old[]` is a site the patch set missed.
+- `COUNT`: messages per ID over the last `summary_s=` seconds, so silence is visible too.
+
+Reading a failed join: the host should log `RECV NEW_INCOMING_CONNECTION`, a `new[1]` slot
+with the client's GUID, and then `SEND game:SESSION_DATA` (0x83) to that GUID. The client
+should log `RECV CONNECTION_REQUEST_ACCEPTED`, then the 0x83, then a `SESSION` with its own
+`localSlot`. The first step that is missing on either side is where to look.

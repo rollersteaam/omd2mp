@@ -94,6 +94,14 @@ def main():
         ok = (f in sess) or (SESSION_CLUSTER[0] <= a < SESSION_CLUSTER[1])
         return ("session" if ok else "review"), f
 
+    addr_k = {w[0]: k for k, w in enumerate(ins)}
+
+    def frame_ebp(k):
+        """Is ebp the frame pointer at ins[k]? (`mov ebp, esp` between function start and k)"""
+        f = fstart(ins[k][0])
+        j = addr_k.get(f, max(0, k - 400))
+        return any(w[2] == "mov" and w[3] == "ebp, esp" for w in ins[j:k])
+
     rows = []
     for k, (a, size, mn, ops) in enumerate(ins):
         m = MEM.search(ops)
@@ -126,7 +134,10 @@ def main():
             if any(w[2] == "lea" and re.search(r"\[(e\w\w) \+ \1\*2", w[3]) for w in nxt):
                 t, f = tag(a)
                 rows.append((a, size, "L:bound<=1", t, f, f"{mn} {ops}"))
-        # an esp/ebp base is a stack local (e.g. the SEH frame at 0x4B1ACD), never the Session
+        # an esp base is a stack local, never the Session; so is ebp in a function that set it
+        # up as the frame pointer (the SEH frame at 0x4B1ACD). Elsewhere ebp is an ordinary
+        # register: the 0x83 session-data writer (0x4B38D0) holds the Session in ebp and walks
+        # slot states with `lea esi,[ebp+0x48]` (0x4B3A14).
         # The stride add can be far away: Session::Broadcast (0x4B2150) forms the base at
         # 0x4B2161 and steps it 47 instructions later, after the send call. So look ahead to
         # the end of the function for `add <same register>, 0x18`.
@@ -136,13 +147,17 @@ def main():
             # the base can point at any slot0 field, not just +0x38: the 0x86 broadcast
             # (0x4B3756) walks dirty flags with `lea esi,[edi+0x4f]`, the slot reset
             # (0x4B1F3F) and remove-player (0x4B259A) walk states with `lea esi,[ebx+0x48]`
-            km = re.fullmatch(r"(e\w\w), \[e(?!sp|bp)\w\w \+ (0x[0-9a-f]+)\]", ops)
+            km = re.fullmatch(r"(e\w\w), \[(e(?!sp)\w\w) \+ (0x[0-9a-f]+)\]", ops)
+            if km and km.group(2) == "ebp" and frame_ebp(k):
+                km = None
             if km:
-                kd = int(km.group(2), 16)
+                kd = int(km.group(3), 16)
                 if not SLOT_LO <= kd < SLOT_LO + 0x18:
                     km = None
         elif mn == "add":
-            km = re.fullmatch(r"(e(?!sp|bp)\w\w), 0x38", ops)
+            km = re.fullmatch(r"(e(?!sp)\w\w), 0x38", ops)
+            if km and km.group(1) == "ebp" and frame_ebp(k):
+                km = None
         # `add r, 0x38; push r; call Session::SendToSlot (0x4B20F0)` passes &slots[0] (the
         # host, seen from a client) with no stride step anywhere: e.g. Level_Load's 0x89 ack
         # at 0x4A75F9. Without this, real clients answer the host at the stale old slot.

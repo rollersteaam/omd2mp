@@ -2621,6 +2621,39 @@
    ]
   },
   {
+   "id": "slots.K_4b3a14",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4930063,
+   "orig": "e8ec0514008d7548",
+   "steal": 8,
+   "cave": "e8000000008db578600300e900000000",
+   "fixups": [
+    [
+     1,
+     6242304
+    ],
+    [
+     12,
+     4930071
+    ]
+   ],
+   "why": "K:base+0x48: lea esi, [ebp + 0x48] (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     4930068,
+     5,
+     6
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b3a0f: call 0x5f4000",
+    "0x4b3a14: lea esi, [ebp + 0x48]"
+   ]
+  },
+  {
    "id": "slots.L_4b3a8c",
    "group": "slots",
    "kind": "imm",

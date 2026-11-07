@@ -31,7 +31,9 @@ class MergeIni(unittest.TestCase):
         self.assertEqual(c["omd2mp"]["groups"], "lobby,mesh")
         self.assertEqual(c["mpdebug"]["enabled"], "0")            # mocks stay off on upgrade
         self.assertEqual(notes, ["added missing [dev] section with defaults",
-                                 "added missing [mpdebug] section with defaults"])
+                                 "added missing [mpdebug] section with defaults",
+                                 "added missing [nettrace] section with defaults"])
+        self.assertEqual(c["nettrace"]["enabled"], "0")
 
     def test_good_file_untouched(self):
         text, notes = install.merge_ini(TEMPLATE, TEMPLATE)

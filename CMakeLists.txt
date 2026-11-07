@@ -32,7 +32,8 @@ add_test(NAME netvars COMMAND test_netvars)
 
 if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
   add_library(omd2mp_loader SHARED loader/src/dllmain.c loader/src/devcon.c loader/src/devcall.c
-              loader/src/devcheat.c loader/src/mockpeer.c loader/src/crashlog.c)
+              loader/src/devcheat.c loader/src/mockpeer.c loader/src/crashlog.c
+              loader/src/nettrace.c)
   target_link_libraries(omd2mp_loader patchcore devproto mockbrain)
   set_target_properties(omd2mp_loader PROPERTIES OUTPUT_NAME version
                         MSVC_RUNTIME_LIBRARY "MultiThreaded")     # static CRT: no redistributable needed

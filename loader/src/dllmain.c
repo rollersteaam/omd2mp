@@ -21,6 +21,7 @@
 #include "devcon.h"
 #include "mockpeer.h"
 #include "crashlog.h"
+#include "nettrace.h"
 
 #pragma comment(linker, "/export:GetFileVersionInfoA=_px_GetFileVersionInfoA")
 #pragma comment(linker, "/export:GetFileVersionInfoByHandle=_px_GetFileVersionInfoByHandle")
@@ -230,6 +231,23 @@ static void init(void) {
         mc.slot_count = slots ? g_players : 2;
         mc.log = mlog;
         mock_start(&mc);
+    }
+
+    // Network trace for real multiplayer sessions (host and client). After mock_start:
+    // it chains onto the vtable entries the mocks installed.
+    if (GetPrivateProfileIntA("nettrace", "enabled", 0, ini)) {
+        NetTraceConfig nc;
+        int slots = patched && omd2mp_group_enabled(groups, "slots");
+        memset(&nc, 0, sizeof nc);
+        wsprintfA(nc.path, "%somd2mp-net.log", g_dir);
+        nc.full = GetPrivateProfileIntA("nettrace", "full", 40, ini);
+        nc.every = GetPrivateProfileIntA("nettrace", "every", 200, ini);
+        nc.summary_s = GetPrivateProfileIntA("nettrace", "summary_s", 10, ini);
+        nc.snapshot_ms = GetPrivateProfileIntA("nettrace", "snapshot_ms", 100, ini);
+        nc.slot_count = slots ? g_players : 0;
+        nc.slot_new_base = OMD2MP_SLOT_NEW_BASE;
+        nc.log = mlog;
+        nettrace_start(&nc);
     }
 
     // Developer console: independent of patching, so it also works on an unpatched game.

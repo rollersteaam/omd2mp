@@ -108,6 +108,7 @@ va	size	kind	tag	function	instruction
 0x004b388e	3	K:base+0x38	session	0x4b3880	lea edi, [ebx + 0x38]
 0x004b38a5	3	L:loop<2	session	0x4b3880	cmp esi, 2
 0x004b38c0	4	A:slot+0x0	session	0x4b3880	lea eax, [ebx + eax*8 + 0x38]
+0x004b3a14	3	K:base+0x48	session	0x4b38d0	lea esi, [ebp + 0x48]
 0x004b3a8c	3	L:loop<2	session	0x4b38d0	cmp ebx, 2
 0x004b3ad8	3	L:bound<=1	session	0x4b38d0	cmp eax, 1
 0x004b3ae5	4	A:slot+0x0	session	0x4b38d0	lea ecx, [ebp + eax*8 + 0x38]
@@ -211,6 +212,7 @@ va	size	kind	tag	function	instruction
 0x00683927	4	A:slot+0x0	review	0x6836b0	mov ecx, dword ptr [esi + eax*8 + 0x38]
 0x0068392b	4	A:slot+0x4	review	0x6836b0	mov edx, dword ptr [esi + eax*8 + 0x3c]
 0x0068392f	4	A:slot+0x0	review	0x6836b0	lea eax, [esi + eax*8 + 0x38]
+0x00683b9a	3	K:base+0x38	review	0x683b50	lea esi, [ebp + 0x38]
 0x00683bd7	4	A:slot+0x0	review	0x683b50	mov ecx, dword ptr [ebp + eax*8 + 0x38]
 0x00683bdb	4	A:slot+0x4	review	0x683b50	mov edx, dword ptr [ebp + eax*8 + 0x3c]
 0x00683cd0	4	A:slot+0x0	review	0x683cb0	mov edx, dword ptr [ecx + eax*8 + 0x38]
