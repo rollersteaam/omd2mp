@@ -39,6 +39,21 @@ class Structure(unittest.TestCase):
         self.assertEqual(META["slot_new_base"] % META["slot_size"], META["slot_old_base"] % META["slot_size"])
         self.assertEqual(META["unpatched_slot_sites"], [])
 
+    def test_slot_loops_relocate_their_base(self):
+        """A slot loop whose bound is raised to N but whose base still points at the old
+        array walks past slots[1] into Session +0x68.. (dirty flag, localSlot, playerCount).
+        The host's 0x86 slot-state broadcast (0x4B3700) did this: it read dirty flags from
+        the stale array, never sent slot states, and real 2-player games hung on
+        'Waiting for other player...' / 'Connecting...'."""
+        vas = {p["va"] for p in PATCHES}
+        spans = [(p["va"], p["va"] + len(p["orig"]) // 2) for p in PATCHES]
+        covered = lambda a: any(lo <= a < hi for lo, hi in spans)
+        for base, bound in [(0x4B3756, 0x4B379B), (0x4B1F3F, 0x4B1F9C), (0x4B259A, 0x4B25FB)]:
+            self.assertIn(bound, vas, hex(bound))
+            self.assertTrue(covered(base), f"loop bound {bound:#x} patched but base {base:#x} is not")
+        for a in (0x4B2600, 0x4B2608, 0x4B2631, 0x4B2639, 0x4B2643, 0x4B2652, 0x4B2E0A, 0x4B2E20):
+            self.assertTrue(covered(a), f"slots[0] access {a:#x} not relocated")
+
     def test_no_overlapping_sites(self):
         spans = sorted((p["va"], p["va"] + len(p["orig"]) // 2, p["id"]) for p in PATCHES)
         for (a0, a1, i), (b0, b1, j) in zip(spans, spans[1:]):
@@ -172,7 +187,7 @@ class Disassembly(unittest.TestCase):
     def test_slot_relocation_moves_by_delta(self):
         disp = re.compile(r"\+ (0x[0-9a-f]+)\]")
         for p in (p for p in PATCHES if p["kind"] == "tramp" and p["group"] == "slots" and "hook" not in p["id"]
-                  and not p["id"].startswith("slots.U64_")):
+                  and not p["id"].startswith(("slots.U64_", "slots.heroes_"))):
             orig = {int(x.group(1), 16) for a in p["asm"] for x in [disp.search(a)] if x}
             new = {int(x.group(1), 16) for i in self.decode(p) for x in [disp.search(i.op_str)] if x}
             imm = re.compile(r"(?:add|lea) \w+, (?:\[\w+ \+ )?(0x[0-9a-f]+)")

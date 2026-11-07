@@ -1062,6 +1062,41 @@
    ]
   },
   {
+   "id": "slots.K_4b1f3f",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4923197,
+   "orig": "33ff8d7348",
+   "steal": 5,
+   "cave": "33ff8db378600300e900000000",
+   "fixups": [
+    [
+     9,
+     4923202
+    ]
+   ],
+   "why": "K:base+0x48: lea esi, [ebx + 0x48] (+0x36030)",
+   "verbatim": [
+    [
+     4923197,
+     0,
+     2
+    ]
+   ],
+   "rewritten": [
+    [
+     4923199,
+     2,
+     6
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1f3d: xor edi, edi",
+    "0x4b1f3f: lea esi, [ebx + 0x48]"
+   ]
+  },
+  {
    "id": "slots.L_4b1f9c",
    "group": "slots",
    "kind": "imm",
@@ -1580,6 +1615,41 @@
    ]
   },
   {
+   "id": "slots.K_4b259a",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924824,
+   "orig": "33ff8d7348",
+   "steal": 5,
+   "cave": "33ff8db378600300e900000000",
+   "fixups": [
+    [
+     9,
+     4924829
+    ]
+   ],
+   "why": "K:base+0x48: lea esi, [ebx + 0x48] (+0x36030)",
+   "verbatim": [
+    [
+     4924824,
+     0,
+     2
+    ]
+   ],
+   "rewritten": [
+    [
+     4924826,
+     2,
+     6
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2598: xor edi, edi",
+    "0x4b259a: lea esi, [ebx + 0x48]"
+   ]
+  },
+  {
    "id": "slots.L_4b25fb",
    "group": "slots",
    "kind": "imm",
@@ -1589,6 +1659,207 @@
    "size": 1,
    "expr": "N",
    "why": "slot loop bound: cmp edi, 2"
+  },
+  {
+   "id": "slots.F_4b2600",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924928,
+   "orig": "8b43486a00",
+   "steal": 5,
+   "cave": "8b83786003006a00e900000000",
+   "fixups": [
+    [
+     9,
+     4924933
+    ]
+   ],
+   "why": "F:slot0+0x10: mov eax, dword ptr [ebx + 0x48] (+0x36030)",
+   "verbatim": [
+    [
+     4924931,
+     6,
+     2
+    ]
+   ],
+   "rewritten": [
+    [
+     4924928,
+     0,
+     6
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2600: mov eax, dword ptr [ebx + 0x48]",
+    "0x4b2603: push 0"
+   ]
+  },
+  {
+   "id": "slots.F_4b2608",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924936,
+   "orig": "c7434800000000",
+   "steal": 7,
+   "cave": "c7837860030000000000e900000000",
+   "fixups": [
+    [
+     11,
+     4924943
+    ]
+   ],
+   "why": "F:slot0+0x10: mov dword ptr [ebx + 0x48], 0 (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     4924936,
+     0,
+     10
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2608: mov dword ptr [ebx + 0x48], 0"
+   ]
+  },
+  {
+   "id": "slots.F_4b2631",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924977,
+   "orig": "895338a164b08e00",
+   "steal": 8,
+   "cave": "899368600300a164b08e00e900000000",
+   "fixups": [
+    [
+     12,
+     4924985
+    ]
+   ],
+   "why": "F:slot0+0x0: mov dword ptr [ebx + 0x38], edx (+0x36030)",
+   "verbatim": [
+    [
+     4924980,
+     6,
+     5
+    ]
+   ],
+   "rewritten": [
+    [
+     4924977,
+     0,
+     6
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2631: mov dword ptr [ebx + 0x38], edx",
+    "0x4b2634: mov eax, dword ptr [0x8eb064]"
+   ]
+  },
+  {
+   "id": "slots.F_4b2639",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924985,
+   "orig": "89433c668b0d68b08e00",
+   "steal": 10,
+   "cave": "89836c600300668b0d68b08e00e900000000",
+   "fixups": [
+    [
+     14,
+     4924995
+    ]
+   ],
+   "why": "F:slot0+0x4: mov dword ptr [ebx + 0x3c], eax (+0x36030)",
+   "verbatim": [
+    [
+     4924988,
+     6,
+     7
+    ]
+   ],
+   "rewritten": [
+    [
+     4924985,
+     0,
+     6
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2639: mov dword ptr [ebx + 0x3c], eax",
+    "0x4b263c: mov cx, word ptr [0x8eb068]"
+   ]
+  },
+  {
+   "id": "slots.F_4b2643",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924995,
+   "orig": "66894b407409",
+   "steal": 6,
+   "cave": "66898b706003000f8400000000e900000000",
+   "fixups": [
+    [
+     9,
+     4925010
+    ],
+    [
+     14,
+     4925001
+    ]
+   ],
+   "why": "F:slot0+0x8: mov word ptr [ebx + 0x40], cx (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     4924995,
+     0,
+     7
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2643: mov word ptr [ebx + 0x40], cx",
+    "0x4b2647: je 0x4b2652"
+   ]
+  },
+  {
+   "id": "slots.F_4b2652",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4925010,
+   "orig": "c6434f01c6436801",
+   "steal": 8,
+   "cave": "c6837f60030001c6436801e900000000",
+   "fixups": [
+    [
+     12,
+     4925018
+    ]
+   ],
+   "why": "F:slot0+0x17: mov byte ptr [ebx + 0x4f], 1 (+0x36030)",
+   "verbatim": [
+    [
+     4925014,
+     7,
+     4
+    ]
+   ],
+   "rewritten": [
+    [
+     4925010,
+     0,
+     7
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2652: mov byte ptr [ebx + 0x4f], 1",
+    "0x4b2656: mov byte ptr [ebx + 0x68], 1"
+   ]
   },
   {
    "id": "slots.D_4b2685",
@@ -1987,6 +2258,62 @@
    ]
   },
   {
+   "id": "slots.F_4b2e0a",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4926986,
+   "orig": "f30f7e4738",
+   "steal": 5,
+   "cave": "f30f7e8768600300e900000000",
+   "fixups": [
+    [
+     9,
+     4926991
+    ]
+   ],
+   "why": "F:slot0+0x0: movq xmm0, qword ptr [edi + 0x38] (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     4926986,
+     0,
+     8
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2e0a: movq xmm0, qword ptr [edi + 0x38]"
+   ]
+  },
+  {
+   "id": "slots.F_4b2e20",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4927008,
+   "orig": "f30f7e4740",
+   "steal": 5,
+   "cave": "f30f7e8770600300e900000000",
+   "fixups": [
+    [
+     9,
+     4927013
+    ]
+   ],
+   "why": "F:slot0+0x8: movq xmm0, qword ptr [edi + 0x40] (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     4927008,
+     0,
+     8
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2e20: movq xmm0, qword ptr [edi + 0x40]"
+   ]
+  },
+  {
    "id": "slots.C_4b2e72",
    "group": "slots",
    "kind": "tramp",
@@ -2060,6 +2387,41 @@
     "0x4b369f: mov eax, dword ptr [ecx + eax*8]",
     "0x4b36a2: push edi",
     "0x4b36a3: mov edi, ecx"
+   ]
+  },
+  {
+   "id": "slots.K_4b3756",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4929366,
+   "orig": "8d774f8da42400000000",
+   "steal": 10,
+   "cave": "8db77f6003008da42400000000e900000000",
+   "fixups": [
+    [
+     14,
+     4929376
+    ]
+   ],
+   "why": "K:base+0x4f: lea esi, [edi + 0x4f] (+0x36030)",
+   "verbatim": [
+    [
+     4929369,
+     6,
+     7
+    ]
+   ],
+   "rewritten": [
+    [
+     4929366,
+     0,
+     6
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b3756: lea esi, [edi + 0x4f]",
+    "0x4b3759: lea esp, [esp]"
    ]
   },
   {

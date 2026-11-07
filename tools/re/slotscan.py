@@ -17,7 +17,8 @@ MSVC computes &slots[i] as  S + (i*3)*8 + 0x38.  Seen shapes:
   C  lea r,[i+i*2+9] ... [S + r*8]                            -> slots[i].+0x10
   D  lea r,[i+i*2] ; lea p,[S + r*8] ; ... [p + d]            -> p is slot base - 0x38
   L  loops: add p,0x18 ... cmp i,2   /  bounds: cmp i,1 ; ja
-  K  ctor/dtor style: lea p,[S+0x38] / add p,0x38  then stride 0x18
+  K  ctor/dtor style: lea p,[S+0x38..0x4f] / add p,0x38  then stride 0x18
+  F  fixed slots[0] field accesses (hand list FIXED_SLOT0)
 
 Relocating the array to S+NEW_BASE means adding DELTA=NEW_BASE-0x38 to the
 displacement of the instruction that forms the address (A,B,C: the memory operand;
@@ -38,6 +39,12 @@ SESSION_GLOBAL = 0xB9D108
 SESSION_CLUSTER = (0x4B1000, 0x4B4000)   # Session methods are emitted contiguously here
 SEND_TO_SLOT = 0x4B20F0                  # Session::SendToSlot(Slot*, BitStream*)
 SLOT_LO, SLOT_HI = 0x38, 0x68
+FIXED_SLOT0 = [
+    0x4B2600, 0x4B2608,                  # remove-player (client branch): slots[0].state read/clear
+    0x4B2631, 0x4B2639, 0x4B2643,        #   slots[0].guid = UNASSIGNED
+    0x4B2652,                            #   slots[0] dirty flag
+    0x4B2E0A, 0x4B2E20,                  # 0x4B2DE0: send to slots[0].guid
+]
 MEM = re.compile(r"\[(e\w\w) \+ (e\w\w)\*8(?: \+ (0x[0-9a-f]+))?\]")
 
 
@@ -124,8 +131,16 @@ def main():
         # 0x4B2161 and steps it 47 instructions later, after the send call. So look ahead to
         # the end of the function for `add <same register>, 0x18`.
         km = None
+        kd = 0x38
         if mn == "lea":
-            km = re.fullmatch(r"(e\w\w), \[e(?!sp|bp)\w\w \+ 0x38\]", ops)
+            # the base can point at any slot0 field, not just +0x38: the 0x86 broadcast
+            # (0x4B3756) walks dirty flags with `lea esi,[edi+0x4f]`, the slot reset
+            # (0x4B1F3F) and remove-player (0x4B259A) walk states with `lea esi,[ebx+0x48]`
+            km = re.fullmatch(r"(e\w\w), \[e(?!sp|bp)\w\w \+ (0x[0-9a-f]+)\]", ops)
+            if km:
+                kd = int(km.group(2), 16)
+                if not SLOT_LO <= kd < SLOT_LO + 0x18:
+                    km = None
         elif mn == "add":
             km = re.fullmatch(r"(e(?!sp|bp)\w\w), 0x38", ops)
         # `add r, 0x38; push r; call Session::SendToSlot (0x4B20F0)` passes &slots[0] (the
@@ -144,8 +159,17 @@ def main():
                     break
                 if w[2] == "add" and w[3] == f"{km.group(1)}, 0x18":
                     t, f = tag(a)
-                    rows.append((a, size, "K:base+0x38", t, f, f"{mn} {ops}"))
+                    rows.append((a, size, f"K:base+{kd:#x}", t, f, f"{mn} {ops}"))
                     break
+    # Fixed (non-indexed) accesses to slots[0] fields, hand-verified: no index register or
+    # stride, so no shape above sees them. In a client, slots[0] is the host.
+    for a in FIXED_SLOT0:
+        k = next(k for k, w in enumerate(ins) if w[0] == a)
+        _, size, mn, ops = ins[k]
+        m = re.search(r"\[e\w\w \+ (0x[0-9a-f]+)\]", ops)
+        assert m and SLOT_LO <= int(m.group(1), 16) < SLOT_LO + 0x18, (hex(a), mn, ops)
+        t, f = tag(a)
+        rows.append((a, size, f"F:slot0+{int(m.group(1), 16) - 0x38:#x}", t, f, f"{mn} {ops}"))
     rows.sort()
     out = os.path.join(os.path.dirname(__file__), "..", "..", "research", "slot_sites.tsv")
     with open(out, "w") as fh:
