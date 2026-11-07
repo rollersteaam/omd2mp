@@ -9,13 +9,14 @@ rebalance for player count, and document the game so future mods can add charact
 | Reverse-engineering toolkit (`tools/re/`) | done |
 | Network/lobby limits mapped | done (see findings) |
 | Player-slot array inventory (`research/slot_sites.tsv`) | done: 96 session sites |
-| Patch set (`patches/patchset.json`, 108 patches) | generated, unit-tested, **not run in-game** |
+| Patch set (`patches/patchset.json`, 145 patches) | generated, unit-tested, **not run in-game** |
 | Loader DLL (`loader/`, builds `version.dll`) | built, unit-tested, **not run in-game** |
 | Wave rebalance data mod (`mods/rebalance/`) | generator done, **not playtested** |
 | Contributor guide | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) |
 | Co-op disconnect fix | proposal: `docs/DISCONNECT_FIX_PROPOSAL.md` (patch exists as group `netfix`, off by default) |
-| Developer console (`tools/devcon.py`; `[dev] enabled=1`) | built, protocol + client unit-tested, **not run in-game**: state reads, binding calls, time scale, automated high-round `soak` with disconnect detection ([§12](docs/CONTRIBUTING.md#12-the-developer-console-automated-testing-in-a-running-game)) |
-| Phase 2 (HUD / `Net_OtherIndex` for >2 players) | not started |
+| Developer console (`tools/devcon.py`; `[dev] enabled=1`) | state reads, binding calls and time scale confirmed in-game (single player). Automated high-round `soak` with disconnect detection ([§12](docs/CONTRIBUTING.md#12-the-developer-console-automated-testing-in-a-running-game)). Cheats `gold` / `killall` / `god` and `skip --to N` are unit-tested but **not run in-game** ([§12.6](docs/CONTRIBUTING.md#126-cheats)) |
+| Mock players (`[mpdebug]`; [§13](docs/CONTRIBUTING.md#13-mock-players-testing-4-player-co-op-alone)) | host-side fake clients join through the real RakNet/session path: confirmed in-game (slots reach state 5). They copy the host's net variables/profile and follow its "ready" (unit-tested, **not yet run in-game**) |
+| Phase 2 (HUD / `Net_OtherIndex` for >2 players; lobby shows 2 portraits: `mcLocal`/`mcRemote` in the Scaleform movies in `data/gfx.ref`) | not started |
 
 Run all tests: `rea/venv/Scripts/python.exe tests/run_tests.py`.
 
@@ -30,7 +31,7 @@ Run all tests: `rea/venv/Scripts/python.exe tests/run_tests.py`.
   - Unrolled slot resets in `0x4B1CE0` and `0x4B2A50` (client deserializer; wire format already supports up to 127 slots).
   - Gameplay layer: `Net_OtherIndex` (`0x457C30`) returns "the other player"; it has 5 callers (HUD etc.), which is Phase 2 work.
 - Rebalance levers:
-  - `NetMoneyFactor` (default 0.5 at `0x857810`, settable in `game.cfg`) scales gold in multiplayer.
+  - `NetMoneyFactor` (settable in `game.cfg`; default 0.5 loaded at `0x458042` in the gold scaler `0x458020`) scales gold in multiplayer. Never patch the 0.5f at `0x857810` itself: it is a pooled constant shared by the HUD, camera and ragdoll code.
   - 2,087 `Coop=""` wave entries in the Workshop Tool's `SourceXML/onslaughts`.
   - Official data mods load from `%LOCALAPPDATA%\Robot Entertainment\OMD2\MyMods\<name>\mod\game\{ensembles,onslaughts}` via the Mod Launcher (`EnableSteamWorkshop="yes" SteamWorkshopModsCRC=…`).
 - Script/UI binding table: 374 natives, dumped to `research/bindings.tsv` (`tools/re/bindings.py`). Useful for character/ability modding.
@@ -45,6 +46,8 @@ cmake -S . -B build/msvc -G "Visual Studio 16 2019" -A Win32 && cmake --build bu
 python mods/rebalance/build_rebalance.py --players 4
 python tools/install.py            # copies version.dll + omd2mp.ini into <Steam>/Orcs Must Die 2/build/game
 python tools/devcon.py soak --until-wave 40 --ready-up --log soak.jsonl   # needs [dev] enabled=1
+python tools/devcon.py skip --to 10 ; python tools/devcon.py cheat god on # cheats: CONTRIBUTING §12.6
+python tools/devcon.py mock                                  # mock players ([mpdebug] enabled=1): CONTRIBUTING §13
 python tools/re/pe32.py strings|xref|dis|func|calls|rtti|vtable ...
 python tools/re/bindings.py [regex]
 python tools/re/slotscan.py

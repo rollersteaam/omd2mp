@@ -20,6 +20,8 @@ def python_tests():
 C_TESTS = {   # test name -> sources under loader/src
     "test_patchcore": ["patchcore.c"],
     "test_devproto": ["devproto.c"],
+    "test_mockbrain": ["mockbrain.c", "netvars.c"],
+    "test_netvars": ["netvars.c"],
 }
 
 

@@ -12,21 +12,32 @@ target_include_directories(patchcore PUBLIC loader/src)
 add_library(devproto STATIC loader/src/devproto.c)
 target_include_directories(devproto PUBLIC loader/src)
 
+add_library(mockbrain STATIC loader/src/mockbrain.c loader/src/netvars.c)
+target_include_directories(mockbrain PUBLIC loader/src)
+
 add_executable(test_patchcore tests/c/test_patchcore.c)
 target_link_libraries(test_patchcore patchcore)
 add_executable(test_devproto tests/c/test_devproto.c)
 target_link_libraries(test_devproto devproto)
+add_executable(test_mockbrain tests/c/test_mockbrain.c)
+target_link_libraries(test_mockbrain mockbrain)
+add_executable(test_netvars tests/c/test_netvars.c)
+target_link_libraries(test_netvars mockbrain)
 
 enable_testing()
 add_test(NAME patchcore COMMAND test_patchcore)
 add_test(NAME devproto COMMAND test_devproto)
+add_test(NAME mockbrain COMMAND test_mockbrain)
+add_test(NAME netvars COMMAND test_netvars)
 
 if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
-  add_library(omd2mp_loader SHARED loader/src/dllmain.c loader/src/devcon.c loader/src/devcall.c)
-  target_link_libraries(omd2mp_loader patchcore devproto)
+  add_library(omd2mp_loader SHARED loader/src/dllmain.c loader/src/devcon.c loader/src/devcall.c
+              loader/src/devcheat.c loader/src/mockpeer.c loader/src/crashlog.c)
+  target_link_libraries(omd2mp_loader patchcore devproto mockbrain)
   set_target_properties(omd2mp_loader PROPERTIES OUTPUT_NAME version
                         MSVC_RUNTIME_LIBRARY "MultiThreaded")     # static CRT: no redistributable needed
   set_property(TARGET patchcore devproto test_patchcore test_devproto PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
+  set_property(TARGET mockbrain test_mockbrain test_netvars PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
 else()
   message(STATUS "omd2mp: not a 32-bit MSVC build; only the unit tests are built")
 endif()

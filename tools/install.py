@@ -11,7 +11,7 @@ Only ever writes/removes version.dll and omd2mp.ini (and reads omd2mp.log). Neve
 game files. Refuses to overwrite a version.dll it did not install (checked by export of
 the omd2mp marker string).
 """
-import argparse, os, shutil, struct, sys
+import argparse, os, re, shutil, struct, sys
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 DEFAULT_GAME = r"C:\Program Files (x86)\Steam\steamapps\common\Orcs Must Die 2"
 MARKER = b"omd2mp loader"
@@ -39,6 +39,42 @@ def find_game_dir(path):
     if seen:
         return None, "found OrcsMustDie2.exe but not the supported game build:\n  " + "\n  ".join(seen)
     return None, f"OrcsMustDie2.exe not found in {path} or {os.path.join(path, 'build', 'game')}"
+
+
+SECTION = re.compile(r"^\s*\[([^\]]+)\]\s*(.*?)\s*$")
+
+
+def sections(text):
+    """{lowercase section name: list of its lines (header first)} in file order."""
+    out, cur = {}, None
+    for line in text.splitlines():
+        m = SECTION.match(line)
+        if m:
+            cur = m.group(1).strip().lower()
+            out.setdefault(cur, [])
+        if cur is not None:
+            out[cur].append(line)
+    return out
+
+
+def merge_ini(user, template):
+    """Repair an existing omd2mp.ini without losing the user's settings. Returns (text, notes).
+    - `[dev] enabled=1` on one line: Windows ignores everything after `]`, so split it.
+    - sections present in the template but missing from the user's file are appended."""
+    lines, notes = [], []
+    for line in user.splitlines():
+        m = SECTION.match(line)
+        if m and m.group(2) and not m.group(2).startswith(";"):
+            lines += [f"[{m.group(1).strip()}]", m.group(2)]
+            notes.append(f"split '{line.strip()}' onto two lines (a key must not share the [section] line)")
+        else:
+            lines.append(line)
+    have = sections("\n".join(lines))
+    for name, body in sections(template).items():
+        if name not in have:
+            lines += [""] + body
+            notes.append(f"added missing [{name}] section with defaults")
+    return "\n".join(lines) + "\n", notes
 
 
 def ours(path):
@@ -69,8 +105,19 @@ def main():
         sys.exit("build the loader first (see CMakeLists.txt)")
     shutil.copy2(built, dll)
     ini = os.path.join(a.game, "omd2mp.ini")
+    template = os.path.join(ROOT, "dist", "omd2mp.ini")
     if not os.path.exists(ini):
-        shutil.copy2(os.path.join(ROOT, "dist", "omd2mp.ini"), ini)
+        shutil.copy2(template, ini)
+    else:                                   # keep the user's settings, repair the layout
+        with open(ini) as f:
+            old = f.read()
+        with open(template) as f:
+            new, notes = merge_ini(old, f.read())
+        if notes:
+            with open(ini, "w") as f:
+                f.write(new)
+            for n in notes:
+                print("omd2mp.ini:", n)
     print("installed", dll, "and", ini, "- results go to omd2mp.log")
 
 

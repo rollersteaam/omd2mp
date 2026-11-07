@@ -117,7 +117,11 @@ You need surprisingly little x86 knowledge. These are the facts this project rel
 - **How MSVC indexes `slots[i]`** (with 24-byte slots at struct offset `0x38`):
   `lea eax,[i+i*2]` (×3) then `[session + eax*8 + 0x38 + field]` (×8). That is
   `0x38 + 24*i + field`. `slotscan.py` pattern-matches exactly these shapes (A/B/C/D/K/L,
-  documented at the top of the file).
+  documented at the top of the file). A K-shape pointer can be stepped by `0x18` far from
+  where it is formed: `Session::Broadcast` (0x4B2150, which sends every net-variable change)
+  does it 47 instructions later. An earlier scanner only looked 11 instructions ahead, which
+  silently broke every broadcast to players 2+. A missed site doesn't crash anything: the
+  code just reads the old, empty array.
 
 Useful commands:
 
@@ -146,6 +150,20 @@ Session (global 0xB9D108, malloc 0x36058 bytes)
 The wire format already encodes a slot count (up to 127), so the work is in **local**
 assumptions, not the protocol.
 
+Two-player assumptions that are easy to miss (all patched; `test_two_slot_limits_all_covered`
+lists every site):
+- **8-bit compares.** `tools/re/slotscan.py` only finds 32-bit `cmp r,1/2`. Thirteen loops
+  bound slots with `cmp r8,1` / `cmp r8,2` (e.g. Join `0x4B267A`, PlayerJoined `0x4B2791`,
+  the 0x84 handler `0x4B2D4D`). Missing them meant players 3 and 4 never joined or counted.
+- **Per-slot u64 arrays.** `Session+0x00` voiceTime[2] and `+0x10` recvTime[2] are indexed
+  by slot. Slot 2's recvTime would overwrite the pointer at `+0x24`. They are moved past the
+  slots (`OMD2MP_VOICE_TIME_NEW` / `OMD2MP_RECV_TIME_NEW`), and the session allocation grows to
+  `OMD2MP_SESSION_SIZE`.
+- **Static NetVars[2]** at `0xBE7D90` (0x100C bytes each; ctor `0x502740`) holds per-player
+  network variables, including ready-up (`Level_ReadyUp` → `Net_VariableSetBool`). Index 2
+  aliased the global block at `0xBE9DA8`. Every indexed access now points at a loader-owned
+  `g_netvars[16]` (`SYM_NETVARS` in the patch set, resolved by `omd2mp_symbol`).
+
 ## 6. The patch pipeline in detail
 
 ### 6.1 Patch kinds
@@ -156,7 +174,7 @@ must be present) and `why`.
 | kind | What the loader writes | Example |
 |---|---|---|
 | `imm` | an immediate inside the original instruction; value = `expr` evaluated with `N` = players | `push 1` → `push N-1` at `0x456F1E` |
-| `float` | a 4-byte float constant | `NetMoneyFactor` 0.5 → `1/N` at `0x857810` |
+| `float` | a 4-byte float constant, only if nothing else reads it (the generator refuses pooled constants) | none in the current set |
 | `tramp` | `jmp cave` over ≥5 bytes (leftover bytes become `int3`); the cave runs re-encoded copies of the stolen instructions, then `jmp` back | `cmp [esi+eax*8],0` → `cmp [esi+eax*8+0x36030],0` |
 
 **Why trampolines?** Moving `slots[]` to the end of a bigger allocation means adding
@@ -267,6 +285,16 @@ status table).
 
 The tests have already caught real bugs:
 
+- **In-game, the original `economy` patch broke the HUD, aiming and ragdolls.** It rewrote
+  the float at `0x857810` from 0.5 to `1/N`, assuming that was NetMoneyFactor's default.
+  It is MSVC's pooled `0.5f`, read by ~60 instructions (screen centre, HUD anchoring,
+  ragdoll physics). With 4 players every `x * 0.5` became `x * 0.25`: the crosshair moved
+  to the top-left, the minimap to the bottom, and ragdolls stretched. The fix patches the
+  one reader instead (`0x458042` in the gold scaler `0x458020` gets `1/N` from an
+  immediate). `build_patches.py` now refuses a `float` patch on any constant with more
+  than one reader, and `test_shared_float_constants_untouched` guards it. **Lesson:
+  never patch a value in `.rdata` without counting its readers.**
+
 - The C emitter silently dropped `cave_imms`, so the constructor would have initialised
   only 2 slots.
 - `slotscan.py` treated `lea eax,[esp+0x38]` (the SEH frame setup in the Session
@@ -334,7 +362,15 @@ python tools/devcon.py call Net_PlayerCount     # one raw command
 python tools/devcon.py state                    # one JSON snapshot
 python tools/devcon.py watch --interval 1 --csv run.csv
 python tools/devcon.py soak --timescale 4 --until-wave 40 --ready-up --log soak.jsonl
+python tools/devcon.py skip --to 10                 # fast-forward to wave 10 (§12.6)
+python tools/devcon.py cheat gold 5000              # cheats (§12.6)
+python tools/devcon.py cheat killall
+python tools/devcon.py cheat god on
+python tools/devcon.py call Level_ReadyUp true      # start the next wave now
 ```
+
+Bindings take the same arguments as in the game's UI script. `Level_ReadyUp` takes a
+bool: with no argument it sets "ready" to false, which does nothing visible.
 
 `soak` is the high-round test.
 - It optionally speeds the game up and presses ready while a wave countdown is running.
@@ -367,6 +403,9 @@ contain spaces and the escapes `\" \\ \n`. The reply is one line of JSON: either
 | `timescale <x>` | `timescale` | 0 < x ≤ 64, 1 = normal (Vision `VisTimer_cl::SetSlowMotion`) |
 | `read <addr> <len>` | `addr, hex` | len ≤ 1024, checked with `VirtualQuery` |
 | `write <addr> <hex>` | `written` | only with `allow_write=1`; logged |
+| `cheat gold [n]` | `added, cash` | adds n gold (default 10000, negative allowed) to the local player; logged |
+| `cheat killall` | `entities, characters, killed, players, dead, allies, not_owned, overflow, faults` | kills living enemies this peer owns; logged |
+| `cheat god [on\|off]` | `god` | no argument reports the state; logged |
 | `log <text>` | | writes `dev-client: <text>` to `omd2mp.log`, to mark test phases |
 
 All commands except `hello` run on the game's main thread, one per frame. The pipe accepts
@@ -400,12 +439,163 @@ local clients only (`PIPE_REJECT_REMOTE_CLIENTS`), one at a time.
 | Part | Verified by |
 |---|---|
 | protocol (`devproto.c`) | `tests/c/test_devproto.c` (gcc and MSVC) |
-| client logic, soak detection, CSV | `tests/python/test_devcon.py`, against a fake console |
+| client logic, soak detection, CSV, `skip` | `tests/python/test_devcon.py`, against a fake console |
+| cheat decisions (who `killall` kills, god-mode clamp) | `tests/c/test_devproto.c` |
 | client ↔ real Windows named pipe | manual self-test with a local stdlib pipe server |
-| hooks, binding calls, timescale in the game | **not yet**: needs an in-game run. Report `omd2mp.log` plus `devcon.py state` output. |
+| hooks, binding calls, timescale in the game | in-game run, single player (`hello`, `state`, `timescale 4`) |
+| cheats in the game | **not yet**: report `omd2mp.log` plus the JSON replies |
 
 Open questions:
 - Is `VIS_CFG_OnOff` "on" really 1?
 - Do any bindings return values through a movie method other than slot 50? Those would
   show `returned:false`.
 - Does changing the time scale on one co-op peer cause a desync?
+
+### 12.6 Cheats
+
+The retail exe still lists `CheatGold`, `CheatChaosGems`, `CheatPower`,
+`CheatKillAllEnemies` and `CheatKillAllMinions` in its input-action table. That table is
+`{hash, name, flags, code, 1}` × 0x86 entries at `0x8EB3DC`, with names registered at
+`0x81D700`. The cheats have codes 0x82 to 0x85. `CheatKillAllMinions` falls one entry past
+the end of the table, so it was already dead. No code polls any of these codes: the
+player-input function `0x4DA150` checks Rotate (0x7C) and Use (0x7D) by code and stops
+there. The handlers were compiled out, so `devcheat.c` rebuilds the three that matter from
+the game's own functions.
+
+| Cheat | How |
+|---|---|
+| gold | `AddCash` `0x49B510` (eax = health component, edi = amount): the same call kill rewards use, so the HUD updates through `GoldChanged` |
+| killall | walk Vision's entity table (`vision90.dll` `VisElementManager_cl<VisBaseEntity_cl*>`, data at `elementTable+8`, `g_iElementCount` entries). Keep entities whose `+0x310` component has vtable `0x8688E8` and points back at them (`+0x40`). Call `SetHealth(comp, 0, 0, 0x8EA8BC, -1, 0)`, which is the call the game's own out-of-bounds kill (`0x4E02F7`) makes |
+| god | 7-byte inline hook on `SetHealth` `0x49AE30` (`void __stdcall (comp, float hp, attacker, dmg, -1, flag)`), installed on the first `god on`. For player characters (entity `+0x39C` bit 0) it refuses decreases |
+
+Who `killall` skips (`dev_kill_verdict`, unit-tested):
+- **players:** player characters.
+- **dead:** health component `+0x4C` (the *alive* flag: set at spawn `0x49ACF1`, cleared at death `0x49B849`) is 0, or health ≤ 0. Half-spawned enemies also have it at 0, so they are left alone.
+- **faults:** victims skipped because their stats pointer (entity `+0x2D4`) was bad or `SetHealth` raised an exception; the rest are still killed.
+- **allies:** same team as the local player (component `+0x50`; the same field `IsAlly` `0x4ACB90` compares).
+- **not_owned:** the entity's net id (`+0x39E`, owner slot in bits 10+) names another peer.
+  The death handler `0x49C000` only broadcasts deaths of entities the local peer owns, so in
+  co-op run `killall` on the peer that owns the enemies (expected: the host) and check
+  `not_owned` in the reply.
+
+`skip --to N` speeds the game up (8× by default). It then repeats kill all, `Level_ReadyUp
+true` and sleep until `Level_GetCurrentWaveNumber` reaches N, and it restores time scale 1
+when it stops. A wave's enemies spawn over time, so it keeps killing until the wave ends.
+Kills have no attacker, so they award no gold; use `cheat gold` for that.
+
+Limits:
+- God mode also refuses the out-of-bounds kill, so a god-mode player who falls out of the
+  level stays there. Turn it off to respawn.
+- ChaosGems and Power have no surviving code to say what they did, so they are not
+  reimplemented.
+
+### 12.7 When a command faults
+
+Commands run inside `__try`. A fault replies with the exception code and the faulting
+address as `module+offset`. For an access violation it also gives the address read or
+written, plus up to 12 stack words that look like return addresses into the exe's `.text`
+(a cheap backtrace). The same line goes to `omd2mp.log`. For example:
+
+```
+exception 0xc0000005 at 0x4e1a2b (OrcsMustDie2.exe+0xe1a2b) reading 0x10; stack 0x4e0f11 0x4a12c0 ... while running 'cheat'
+```
+
+`skip` stops on the first error and prints `error in <step> at wave <n>: <that line>`.
+Use `pe32.py func`/`dis` on the addresses to find the function.
+
+## 13. Mock players (testing 4-player co-op alone)
+
+`[mpdebug] enabled=1` adds `party_size-1` fake players to a party you host. They go through
+the real join path, so the lobby leaves "Connecting... waiting for other player" and the
+session, slots, per-player arrays and every host→client message run for N players. Real
+memory errors in that code show up without human testers. Code: `loader/src/mockpeer.c`
+(game side), `loader/src/mockbrain.c` (decisions, unit-tested in `tests/c/test_mockbrain.c`).
+
+### 13.1 How it works
+
+The loader hooks RakPeer's vtable (`0x83375C`, each entry checked against its exported
+`RakPeer::` method first):
+
+| vtable | method | mock behaviour |
+|---|---|---|
+| 9 | NumberOfConnections | real + connected mocks (so `Net_IsMultiplayer` is true) |
+| 19, 20 | Send (BitStream / char*) | to a mock: recorded, dropped, returns a fake receipt. Broadcast: recorded for each mock, then sent to real peers |
+| 23 | Receive | runs the mock brain once per drain (≥15 ms), then the real Receive |
+| 26 | CloseConnection | on a mock: marks it dropped (no notification, as in RakNet) |
+| 27 | GetConnectionState | IS_CONNECTED (2) for connected mocks |
+| 40-42 | Get{Average,Last,Lowest}Ping | 30, 40, 50 ms for mocks 1-3 |
+| 67, 69 | PushBackPacket, AllocatePacket | called (not hooked) to inject packets |
+
+Mock *i* has GUID `0xFEEDF00D0000000i`, systemIndex 0xFFFF (so RakPeer never indexes its
+arrays with it) and address 10.77.0.*i*. Injected packets go through the game's normal net
+loop (`0x457150`) and dispatch table (`0xB9BAD8`), and RakNet plugins (FullyConnectedMesh2)
+see them too. The brain does, per mock:
+
+1. Host, session and accepting (`[0xBBB99C]+8`, the check in `Session::OnConnect`
+   `0x4B23F0`): wait `i*join_delay_ms`, then push `0x13` ID_NEW_INCOMING_CONNECTION. The host
+   assigns a slot (state 3), sends `0x83` session data and calls Join.
+2. Once a slot holds the GUID, push `0x84` (loaded ack, sets slot+0x15). Then
+   PlayerJoined/`playerjoin` fires.
+3. When the slot state is 3 or 4 and stays there for `settle_ms`, push `0x86 [5]` (ready;
+   the UI checks state == 5). Repeat 0x84 / 0x86 [5] whenever the host resets them,
+   e.g. on level load.
+4. Answer the host's net variables. The lobby script (`Net_VariableGetBool(i, "ready")` over
+   `Net_PlayerCount`) waits on every player's `ready` **net variable**, not on the slot state.
+   The host sends each new client its whole table (`0x87`) and its profile (`0x8e`, ~1.5 KB).
+   Each mock answers with its own `0x87`, a copy of the host's table with its own `ready`,
+   and a copy of the host's `0x8e`. Later host changes (`0x88`) are copied too. So a mock
+   looks like a second copy of you, character included. `[mpdebug] ready` decides when a
+   mock's `ready` turns on: `follow` (when yours does), `auto`, or `manual`.
+5. On a new session object, mocks that are still connected wait for a slot and connect
+   again if none comes. With no session (back to the menu), all mocks reset.
+
+**Net variables** (`loader/src/netvars.c`, tests in `tests/c/test_netvars.c`) are a
+per-player table of `key -> bytes`. The key is the hash `0x40E840` of the name the UI passes:
+ELF-style with an *arithmetic* shift, so keys with the top bit set keep their top nibble.
+For example, `ready` = `0x0078B7B9`. A bool is one byte.
+
+| id | handler | body |
+|---|---|---|
+| `0x87` | `0x501CA0` → clear + `0x501900` | repeat { u32 key (big-endian); 0 ends; u8 len; bytes } |
+| `0x88` | `0x501CE0` → `0x501BB0` | u32 key; 1 bit has-value; if set: u8 len; bytes. The bit leaves the rest unaligned |
+
+**Level load (`0x89`).** When everyone is ready, the lobby's `LoadLevel()` calls `Level_Load`
+(`0x423A10` → `0x4A73E0`). On a multiplayer host with clients, that does *not* load yet: it
+broadcasts `0x89 {bit go=1; u32 ×3 level info}` and sets `+0x11A9` (waiting). The host only
+starts loading when a client answers `0x89 {bit 1}` (`0x80`). The handler `0x4A71A0` then sets
+`+0x11A8` and `0x4A77B0` enters the load state. `0x89 {bit 0}` is a cancel (level not found)
+and resets through `0x4A72E0`, which clears `ready`. Mocks have nothing to load, so they ack
+straight away. The client's ack goes through `Session::SendToSlot(&slots[0])` via
+`add r, 0x38`. That shape is the `K:slot0+0x38 send` kind in `slotscan.py` (5 sites).
+
+### 13.2 Using it
+
+```
+python tools/devcon.py mock                 # host flags + one line per mock, with message ids received
+python tools/devcon.py mock log 50          # the last 50 host->mock messages (id, size, first bytes)
+python tools/devcon.py mock drop 2          # mock 2 disconnects (0x15); `drop 2 lost` = 0x16 timeout
+python tools/devcon.py mock join 2          # a dropped mock joins again after join_delay_ms
+python tools/devcon.py mock ready 3         # mock 3: ready net variable on + slot state 5 (stops following you)
+python tools/devcon.py mock ready 3 0       # ...and off again
+python tools/devcon.py mock vars            # your net variables as the mocks copy them (hash, bytes)
+python tools/devcon.py mock send 3 8705ff   # push any bytes as mock 3 (replay a captured client message)
+python tools/devcon.py mock clear           # reset the counters
+```
+
+The log records each mock's state changes and the first time each message id arrives.
+
+### 13.3 Limits
+
+- **Host only.** Mocks never act as the host, and a real client sees no mocks.
+- **No hero, no input.** Mocks answer 0x13/0x84/0x86/0x87/0x88/0x89/0x8e and nothing else. If
+  the host waits on another message, `mock status` shows which ids arrived. Use
+  `mock send` to try a reply, then add it to the brain.
+- **The lobby shows two portraits.** The level-select movie has exactly two player clips
+  (`mcLocal`, `mcRemote`), and the in-game party HUD uses `Net_OtherIndex`, which means
+  "the other player". Showing players 3 and 4 needs those Scaleform movies changed (Phase 2).
+- The profile handler (`0x47D3C0`) queues incoming `0x8e`..`0x9a` messages in a
+  **two-entry** pending list (`[obj+0x2C]`, count `+0x34`; `cmp eax, 2`). A third message
+  that arrives before the list drains is dropped (and leaked). Mocks join 1.5 s apart, so
+  this rarely matters for them. Three real clients joining at once could hit it.
+- The Steam lobby itself has only you in it. Anything that reads the Steam member list,
+  not the session, still sees one player.

@@ -163,7 +163,37 @@ static void test_hex(void) {
     CHECK(dev_unhex(hx, back, sizeof back) == 256 && !memcmp(all, back, 256));
 }
 
+static void test_kill_verdict(void) {
+    DevKillCand base = { 0, 0, 50.0f, 2, 1, 0xFFFF, 0 }, c;
+    c = base; CHECK(dev_kill_verdict(&c) == DK_KILL);
+    c = base; c.is_player = 1; CHECK(dev_kill_verdict(&c) == DK_PLAYER);
+    c = base; c.is_player = 1; c.team = 1; CHECK(dev_kill_verdict(&c) == DK_PLAYER);   // player wins over ally
+    c = base; c.dead = 1; CHECK(dev_kill_verdict(&c) == DK_DEAD);
+    c = base; c.health = 0; CHECK(dev_kill_verdict(&c) == DK_DEAD);
+    c = base; c.health = -3; CHECK(dev_kill_verdict(&c) == DK_DEAD);
+    c = base; c.team = 1; CHECK(dev_kill_verdict(&c) == DK_ALLY);
+    // networked: owner slot is net_id >> 10
+    c = base; c.net_id = (0u << 10) | 77; CHECK(dev_kill_verdict(&c) == DK_KILL);
+    c = base; c.net_id = (1u << 10) | 77; CHECK(dev_kill_verdict(&c) == DK_NOT_OWNED);
+    c = base; c.net_id = (1u << 10) | 77; c.local_slot = 1; CHECK(dev_kill_verdict(&c) == DK_KILL);
+    c = base; c.net_id = (3u << 10); c.local_slot = 3; CHECK(dev_kill_verdict(&c) == DK_KILL);
+    c = base; c.net_id = 0xFFFF; c.local_slot = 5; CHECK(dev_kill_verdict(&c) == DK_KILL);  // not networked
+    CHECK(!strcmp(dev_kill_verdict_name(DK_KILL), "killed"));
+    CHECK(!strcmp(dev_kill_verdict_name(DK_NOT_OWNED), "not_owned"));
+    CHECK(!strcmp(dev_kill_verdict_name(99), "unknown"));
+}
+
+static void test_god_health(void) {
+    CHECK(dev_god_health(1, 1, 80.0f, 10.0f) == 80.0f);     // damage refused
+    CHECK(dev_god_health(1, 1, 80.0f, 0.0f) == 80.0f);      // lethal damage refused
+    CHECK(dev_god_health(1, 1, 80.0f, 100.0f) == 100.0f);   // heals pass
+    CHECK(dev_god_health(1, 0, 80.0f, 10.0f) == 10.0f);     // enemies still take damage
+    CHECK(dev_god_health(0, 1, 80.0f, 10.0f) == 10.0f);     // off
+}
+
 int main(void) {
+    test_kill_verdict();
+    test_god_health();
     test_gval_layout();
     test_split();
     test_token_gval();

@@ -14,6 +14,11 @@ the game's main thread, once per frame. Stdlib only.
   python tools/devcon.py state                   wave, net and per-player state as JSON
   python tools/devcon.py watch --interval 1 --csv run.csv
   python tools/devcon.py soak --timescale 4 --until-wave 40 --ready-up --log soak.jsonl
+  python tools/devcon.py skip --to 10            fast-forward: kill all + ready up until wave 10
+  python tools/devcon.py cheat gold 5000         add gold to the local player (default 10000)
+  python tools/devcon.py cheat killall           kill every living enemy this peer owns
+  python tools/devcon.py cheat god on            player characters take no damage (off / no arg)
+  python tools/devcon.py call Level_ReadyUp true start the next wave (false un-readies)
 
 `soak` is the high-round test: it speeds the game up, presses ready between waves, records
 state every interval, and flags disconnects (player count dropping, a peer going silent,
@@ -21,7 +26,7 @@ the game dying). Run it on every machine in the session for co-op: game speed is
 all peers should use the same --timescale (or leave it at 1 for a faithful run).
 
 Raw commands: hello, ping, call <Binding> [args...], session, timescale <x>,
-read <addr> <len>, write <addr> <hex> (needs allow_write=1), log <text>.
+read <addr> <len>, write <addr> <hex> (needs allow_write=1), cheat ..., log <text>.
 See docs/CONTRIBUTING.md section 12.
 """
 import argparse, csv, json, os, sys, time
@@ -147,6 +152,20 @@ class Client:
 
     def log(self, text):
         self.cmd("log", quote(text))
+
+    def gold(self, amount=10000):
+        return self.cmd("cheat", "gold", str(int(amount)))
+
+    def killall(self):
+        return self.cmd("cheat", "killall")
+
+    def god(self, on=None):
+        r = self.cmd("cheat", "god", *([] if on is None else ["on" if on else "off"]))
+        return r["god"]
+
+    def mock(self, *args):
+        """Mock players ([mpdebug] in omd2mp.ini): status, log [n], clear, drop/join/ready/send <i>."""
+        return self.cmd("mock", *(str(a) for a in args))
 
     def state(self):
         """One snapshot. A binding that errors is reported in st["errors"], not raised."""
@@ -292,6 +311,90 @@ class Soak:
         return reason
 
 
+class Skip:
+    """Fast-forwards to a wave: speeds the game up, then repeatedly kills every enemy and
+    presses ready until Level_GetCurrentWaveNumber reaches the target. Enemies of a wave
+    spawn over time, so one killall is not enough. Kills give no gold (no attacker)."""
+
+    def __init__(self, client, to_wave, timescale=8.0, interval=0.5, max_minutes=None,
+                 clock=time.time, sleep=time.sleep, echo=print):
+        self.c, self.to_wave, self.timescale, self.interval = client, to_wave, timescale, interval
+        self.max_s = max_minutes * 60 if max_minutes else None
+        self.clock, self.sleep, self.echo = clock, sleep, echo
+        self.killed = 0
+
+    def run(self):
+        t0, last, warned_paused = self.clock(), None, False
+        if self.timescale and self.timescale != 1:
+            self.c.timescale(self.timescale)
+        self.c.log("skip start to_wave=%s" % self.to_wave)
+        reason, step = None, "start"
+        try:
+            while reason is None:
+                step = "Level_GetCurrentWaveNumber"
+                wave = self.c.call("Level_GetCurrentWaveNumber")
+                if wave != last:
+                    self.echo("[skip] wave %s" % wave)
+                    last = wave
+                if isinstance(wave, (int, float)) and wave >= self.to_wave:
+                    reason = "reached wave %s" % wave
+                    break
+                step = "Level_GetCurrentWon"
+                if self.c.call("Level_GetCurrentWon"):
+                    reason = "won"
+                    break
+                step = "Game_IsPaused"
+                if self.c.call("Game_IsPaused"):
+                    if not warned_paused:
+                        self.echo("[skip] game is paused; close the menu to continue")
+                        warned_paused = True
+                else:
+                    warned_paused = False
+                    step = "cheat killall"
+                    self.killed += self.c.killall().get("killed", 0)
+                    step = "Level_ReadyUp"
+                    self.c.call("Level_ReadyUp", True)
+                if self.max_s is not None and self.clock() - t0 >= self.max_s:
+                    reason = "time limit"
+                    break
+                self.sleep(self.interval)
+        except KeyboardInterrupt:
+            reason = "interrupted"
+        except DevError as e:
+            # The game survived (the console caught the fault); say which step and where.
+            reason = "error in %s at wave %s: %s" % (step, last, e)
+        finally:
+            if self.timescale and self.timescale != 1:
+                try:
+                    self.c.timescale(1)
+                except (DevError, ConnectionLost):
+                    pass
+        self.echo("[skip] %s, %d enemies killed" % (reason, self.killed))
+        try:
+            self.c.log("skip end: %s" % reason)
+        except (DevError, ConnectionLost):
+            pass
+        return reason
+
+
+def format_mock_status(st):
+    """Human-readable `mock status`: one line for the host, one per mock."""
+    lines = ["host=%s session=%s accepting=%s real_connections=%s party_size=%s ready_mode=%s" % (
+        st.get("host"), st.get("session"), st.get("accepting"), st.get("connections_real"), st.get("party_size"),
+        st.get("ready_mode", "?")),
+        "  host net vars: %s entries (%s unparsed), host ready=%s, host profile %s bytes" % (
+            st.get("host_vars", "?"), st.get("host_vars_bad", 0), st.get("host_ready", "?"),
+            st.get("host_profile_bytes", "?"))]
+    for m in st.get("mocks", []):
+        rx = " ".join("%s:%s" % kv for kv in sorted(m.get("rx", {}).items()))
+        ready = {-1: "unsent", 0: "no", 1: "yes"}.get(m.get("ready"), m.get("ready"))
+        lines.append("  mock %d %-10s slot=%-2s state=%-2s ack=%s ready=%s%s mirrored=%s pushed=%s%s  rx[%s]" % (
+            m["i"], m["state"], m["slot"], m["slot_state"], m["ack"], ready,
+            "(manual)" if m.get("manual") else "", m.get("mirrored", 0), m["pushed"],
+            "  (%s)" % m["why"] if m.get("why") else "", rx))
+    return "\n".join(lines)
+
+
 # ------------------------------------------------------------------ CLI
 def repl(c):
     print("omd2mp dev console. Raw commands; 'state' for a snapshot; Ctrl+Z/Ctrl+D or 'quit' to exit.")
@@ -331,11 +434,20 @@ def main(argv=None, transport=None):
     s.add_argument("--max-minutes", type=float)
     s.add_argument("--interval", type=float, default=1.0)
     s.add_argument("--log", help="JSONL file for states and events")
+    k = sub.add_parser("skip", help="fast-forward to a wave: kill all, ready up, repeat")
+    k.add_argument("--to", type=int, required=True, help="stop when this wave number is reached")
+    k.add_argument("--timescale", type=float, default=8.0)
+    k.add_argument("--interval", type=float, default=0.5)
+    k.add_argument("--max-minutes", type=float)
     argv = list(sys.argv[1:] if argv is None else argv)
     pipe = DEFAULT_PIPE
     if len(argv) >= 2 and argv[0] == "--pipe":
         pipe, argv = argv[1], argv[2:]
-    if argv and argv[0] not in ("state", "watch", "soak") and not argv[0].startswith("-"):
+    if argv and argv[0] == "mock" and argv[1:] in ([], ["status"]):
+        st = Client(transport or PipeTransport(pipe)).mock("status")
+        print(format_mock_status(st))
+        return 0
+    if argv and argv[0] not in ("state", "watch", "soak", "skip") and not argv[0].startswith("-"):
         c = Client(transport or PipeTransport(pipe))      # raw command: devcon.py call Net_PlayerCount
         r = c.raw(" ".join(argv))
         print(json.dumps(r))
@@ -383,6 +495,10 @@ def main(argv=None, transport=None):
         finally:
             if out:
                 out.close()
+        return 0 if reason in ("won",) or (reason or "").startswith("reached") else 2
+    if args.mode == "skip":
+        reason = Skip(c, args.to, timescale=args.timescale, interval=args.interval,
+                      max_minutes=args.max_minutes).run()
         return 0 if reason in ("won",) or (reason or "").startswith("reached") else 2
     return 0
 

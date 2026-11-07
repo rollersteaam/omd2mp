@@ -15,7 +15,9 @@ static int fails, checks;
 
 static uint32_t rd32(const uint8_t *p) { return p[0] | p[1] << 8 | p[2] << 16 | (uint32_t)p[3] << 24; }
 static double eval_test(int expr, int N) { return expr == 0 ? N : expr == 1 ? N - 1 : 1.0 / N; }
-static uint32_t hook_test(int h) { return h == 1 ? 0x10000000u : 0; }
+static uint32_t hook_test(int h) { return h == 1 ? 0x10000000u : h == 2 ? 0x10000100u : 0; }
+// stands in for the loader's NetVars[16] (dllmain.c)
+uint32_t omd2mp_symbol(int id) { return id == OMD2MP_SYM_NETVARS ? 0x10200000u : id == OMD2MP_SYM_HEROES ? 0x10300000u : 0; }
 static uint32_t hook_none(int h) { (void)h; return 0; }
 
 static void test_groups(void) {
@@ -70,13 +72,35 @@ static void test_hook_and_cave_imm(void) {
     static const uint8_t cave[] = {0x60, 0x9c, 0x56, 0xe8, 0, 0, 0, 0, 0x83, 0xc4, 0x04, 0x9d, 0x61,
                                    0xbf, 0x01, 0, 0, 0, 0xe9, 0, 0, 0, 0};
     static const Fixup fx[] = {{4, 0, 1}, {19, 0x4b1af1, 0}};
-    static const CaveImm im[] = {{14, 4, 1}};                  // mov edi, N-1
+    static const CaveImm im[] = {{14, 4, 1, 0}};               // mov edi, N-1
     Patch p = {"t.hook", "slots", PK_TRAMP, 0x4b1ae9, 8, orig, 0, 0, -1, sizeof cave, cave, 2, fx, 1, im};
     uint8_t c[64];
     CHECK(omd2mp_render_cave(&p, 8, 0x30000000, eval_test, hook_test, c) == PC_OK);
     CHECK(0x30000000u + 8 + rd32(c + 4) == 0x10000000u);
     CHECK(rd32(c + 14) == 7);
     CHECK(omd2mp_render_cave(&p, 8, 0x30000000, eval_test, hook_none, c) == PC_NOHOOK);
+}
+
+static double eval_inv(int expr, int N) { (void)expr; return 1.0 / N; }
+
+static void test_float_cave_imm(void) {
+    // economy: push eax; mov eax, <float 1/N>; movd xmm0, eax; pop eax; jmp back
+    static const uint8_t orig[] = {0xf3, 0x0f, 0x10, 0x05, 0x10, 0x78, 0x85, 0x00};
+    static const uint8_t cave[] = {0x50, 0xb8, 0, 0, 0, 0, 0x66, 0x0f, 0x6e, 0xc0, 0x58, 0xe9, 0, 0, 0, 0};
+    static const Fixup fx[] = {{12, 0x45804a, 0}};
+    static const CaveImm im[] = {{2, 4, 0, 1}};
+    Patch p = {"t.float", "economy", PK_TRAMP, 0x458042, 8, orig, 0, 0, -1, sizeof cave, cave, 1, fx, 1, im};
+    uint8_t c[64];
+    for (int N = 2; N <= 16; N++) {
+        float want = (float)(1.0 / N), got;
+        uint32_t bits;
+        CHECK(omd2mp_render_cave(&p, N, 0x30000000, eval_inv, hook_none, c) == PC_OK);
+        bits = rd32(c + 2);
+        memcpy(&got, &bits, 4);
+        CHECK(got == want);
+        CHECK(0x30000000u + 16 + rd32(c + 12) == 0x45804au);
+    }
+    CHECK(rd32(c + 2) == 0x3d800000u);                        // N=16 -> 0.0625f
 }
 
 static void test_replicate(void) {
@@ -117,20 +141,39 @@ static void test_generated_table(void) {
             CHECK(r == PC_OK);
             // vanilla identity: for 2 players, value patches reproduce the original bytes,
             // except the ones that change behaviour regardless of N.
-            int n_independent = !strcmp(p->group, "netfix") || !strncmp(p->id, "slots.session_alloc", 19);
+            int n_independent = !strcmp(p->group, "netfix") || !strncmp(p->id, "slots.session_alloc", 19) ||
+                                !strncmp(p->id, "slots.netvars_base", 18) || !strncmp(p->id, "slots.heroes", 12);
             if (N == 2 && p->kind != PK_TRAMP && !n_independent) {
                 if (memcmp(site, p->orig, p->orig_len)) printf("not vanilla at N=2: %s\n", p->id);
                 CHECK(memcmp(site, p->orig, p->orig_len) == 0);
             }
-            if (N == 2 && p->kind == PK_TRAMP) {               // cave immediates too
+            if (N == 2 && p->kind == PK_TRAMP && !n_independent) {               // cave immediates too
                 for (int k = 0; k < p->nimm; k++)
                     CHECK(memcmp(cave + p->imms[k].cave_off, p->cave + p->imms[k].cave_off, p->imms[k].size) == 0);
             }
         }
     }
-    // the Session allocation must cover slots[N] for every supported N
-    for (int N = 2; N <= OMD2MP_MAX_PLAYERS; N++)
-        CHECK(omd2mp_eval(1, N) >= OMD2MP_SLOT_NEW_BASE + N * OMD2MP_SLOT_SIZE);
+    // the Session allocation must cover slots[16] and the two relocated u64[16] arrays,
+    // and the NetVars base sites must point at the loader's array
+    int allocs = 0, netvars = 0;
+    for (size_t i = 0; i < OMD2MP_PATCH_COUNT; i++) {
+        const Patch *p = &OMD2MP_PATCHES[i];
+        uint8_t site[OMD2MP_MAX_SITE];
+        if (!strncmp(p->id, "slots.session_alloc", 19)) {
+            allocs++;
+            CHECK(omd2mp_render_site(p, 4, 0, omd2mp_eval, site) == PC_OK);
+            CHECK(rd32(site + p->off) == OMD2MP_SESSION_SIZE);
+        }
+        if (!strncmp(p->id, "slots.netvars_base", 18)) {
+            netvars++;
+            CHECK(omd2mp_render_site(p, 4, 0, omd2mp_eval, site) == PC_OK);
+            CHECK(rd32(site + p->off) == 0x10200000u);
+        }
+    }
+    CHECK(allocs == 3 && netvars == 8);
+    CHECK(OMD2MP_SLOT_NEW_BASE + OMD2MP_MAX_PLAYERS * OMD2MP_SLOT_SIZE <= OMD2MP_VOICE_TIME_NEW);
+    CHECK(OMD2MP_VOICE_TIME_NEW + OMD2MP_MAX_PLAYERS * 8 <= OMD2MP_RECV_TIME_NEW);
+    CHECK(OMD2MP_RECV_TIME_NEW + OMD2MP_MAX_PLAYERS * 8 <= OMD2MP_SESSION_SIZE);
 }
 
 int main(void) {
@@ -139,6 +182,7 @@ int main(void) {
     test_imm_site();
     test_tramp();
     test_hook_and_cave_imm();
+    test_float_cave_imm();
     test_replicate();
     test_generated_table();
     printf("%d/%d checks passed\n", checks - fails, checks);

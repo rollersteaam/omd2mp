@@ -36,6 +36,7 @@ import capstone
 
 SESSION_GLOBAL = 0xB9D108
 SESSION_CLUSTER = (0x4B1000, 0x4B4000)   # Session methods are emitted contiguously here
+SEND_TO_SLOT = 0x4B20F0                  # Session::SendToSlot(Slot*, BitStream*)
 SLOT_LO, SLOT_HI = 0x38, 0x68
 MEM = re.compile(r"\[(e\w\w) \+ (e\w\w)\*8(?: \+ (0x[0-9a-f]+))?\]")
 
@@ -119,12 +120,32 @@ def main():
                 t, f = tag(a)
                 rows.append((a, size, "L:bound<=1", t, f, f"{mn} {ops}"))
         # an esp/ebp base is a stack local (e.g. the SEH frame at 0x4B1ACD), never the Session
-        if (mn == "lea" and re.fullmatch(r"e\w\w, \[e(?!sp|bp)\w\w \+ 0x38\]", ops)) or \
-           (mn == "add" and re.fullmatch(r"e(?!sp|bp)\w\w, 0x38", ops)):
-            nxt = ins[k + 1:k + 12]
-            if any(w[2] == "add" and w[3].endswith(", 0x18") for w in nxt):
+        # The stride add can be far away: Session::Broadcast (0x4B2150) forms the base at
+        # 0x4B2161 and steps it 47 instructions later, after the send call. So look ahead to
+        # the end of the function for `add <same register>, 0x18`.
+        km = None
+        if mn == "lea":
+            km = re.fullmatch(r"(e\w\w), \[e(?!sp|bp)\w\w \+ 0x38\]", ops)
+        elif mn == "add":
+            km = re.fullmatch(r"(e(?!sp|bp)\w\w), 0x38", ops)
+        # `add r, 0x38; push r; call Session::SendToSlot (0x4B20F0)` passes &slots[0] (the
+        # host, seen from a client) with no stride step anywhere: e.g. Level_Load's 0x89 ack
+        # at 0x4A75F9. Without this, real clients answer the host at the stale old slot.
+        if km and mn == "add":
+            nxt = ins[k + 1:k + 6]
+            if any(w[2] == "push" and w[3] == km.group(1) for w in nxt[:3]) and \
+               any(w[2] == "call" and w[3] == hex(SEND_TO_SLOT) for w in nxt):
                 t, f = tag(a)
-                rows.append((a, size, "K:base+0x38", t, f, f"{mn} {ops}"))
+                rows.append((a, size, "K:slot0+0x38 send", t, f, f"{mn} {ops}"))
+                continue
+        if km:
+            for w in ins[k + 1:k + 80]:
+                if w[2] == "ret":
+                    break
+                if w[2] == "add" and w[3] == f"{km.group(1)}, 0x18":
+                    t, f = tag(a)
+                    rows.append((a, size, "K:base+0x38", t, f, f"{mn} {ops}"))
+                    break
     rows.sort()
     out = os.path.join(os.path.dirname(__file__), "..", "..", "research", "slot_sites.tsv")
     with open(out, "w") as fh:

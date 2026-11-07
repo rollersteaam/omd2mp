@@ -155,6 +155,23 @@ static int nib(char c) {
     return -1;
 }
 
+int dev_kill_verdict(const DevKillCand *c) {
+    if (c->is_player) return DK_PLAYER;
+    if (c->dead || !(c->health > 0)) return DK_DEAD;
+    if (c->team == c->player_team) return DK_ALLY;
+    if (c->net_id != 0xFFFF && ((c->net_id >> 10) & 0xFF) != (c->local_slot & 0xFF)) return DK_NOT_OWNED;
+    return DK_KILL;
+}
+
+const char *dev_kill_verdict_name(int v) {
+    static const char *names[] = { "killed", "players", "dead", "allies", "not_owned" };
+    return v >= 0 && v <= DK_NOT_OWNED ? names[v] : "unknown";
+}
+
+float dev_god_health(int god, int is_player, float current, float wanted) {
+    return god && is_player && wanted < current ? current : wanted;
+}
+
 int dev_unhex(const char *s, uint8_t *out, size_t cap) {
     size_t L = strlen(s);
     if (L % 2 || L / 2 > cap) return -1;

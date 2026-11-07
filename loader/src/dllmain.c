@@ -15,9 +15,12 @@
 #include <windows.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #include "patchcore.h"
 #include "patchset_gen.h"
 #include "devcon.h"
+#include "mockpeer.h"
+#include "crashlog.h"
 
 #pragma comment(linker, "/export:GetFileVersionInfoA=_px_GetFileVersionInfoA")
 #pragma comment(linker, "/export:GetFileVersionInfoByHandle=_px_GetFileVersionInfoByHandle")
@@ -63,6 +66,7 @@ static void load_real_version_dll(void) {
 static char g_dir[MAX_PATH];
 static FILE *g_log;
 static int g_players = 2;
+static uintptr_t g_caves, g_caves_len;
 
 static void mlog(const char *fmt, ...) {
     if (!g_log) return;
@@ -86,9 +90,37 @@ static void __cdecl hook_replicate_slots(uint8_t *session) {
                                 OMD2MP_SLOT_SIZE, g_players);
 }
 
+// Session::Reset also cleared the two-entry voiceTime/recvTime u64 arrays at +0x00/+0x10;
+// the patch set moves them past the slots, so clear the moved copies here.
+static void __cdecl hook_session_init(uint8_t *session) {
+    hook_replicate_slots(session);
+    memset(session + OMD2MP_VOICE_TIME_NEW, 0, OMD2MP_MAX_PLAYERS * 8);
+    memset(session + OMD2MP_RECV_TIME_NEW, 0, OMD2MP_MAX_PLAYERS * 8);
+}
+
+// The game keeps per-player network variables (ready-up etc.) in a static NetVars[2] at
+// 0xBE7D90; index 2 would alias the global block that follows. The patch set points every
+// indexed access at this array instead. Same layout as the game's ctor (0x502740):
+// 0x1000 bytes of values, a mask of 0xFF at +0x1000, a counter at +0x1004.
+static uint8_t g_netvars[OMD2MP_MAX_PLAYERS][OMD2MP_NETVARS_SIZE];
+static uint32_t g_heroes[OMD2MP_MAX_PLAYERS];   // Hero* by player slot; was the game's Hero*[2]
+
+static void init_netvars(void) {
+    int i;
+    memset(g_netvars, 0, sizeof g_netvars);
+    for (i = 0; i < OMD2MP_MAX_PLAYERS; i++) g_netvars[i][0x1000] = 0xFF;
+}
+
+uint32_t omd2mp_symbol(int id) {
+    if (id == OMD2MP_SYM_NETVARS) return (uint32_t)(uintptr_t)g_netvars;
+    if (id == OMD2MP_SYM_HEROES) return (uint32_t)(uintptr_t)g_heroes;
+    return 0;
+}
+
 static uint32_t hook_addr(int hook) {
     switch (hook) {
     case OMD2MP_HOOK_REPLICATE_SLOTS: return (uint32_t)(uintptr_t)&hook_replicate_slots;
+    case OMD2MP_HOOK_SESSION_INIT:    return (uint32_t)(uintptr_t)&hook_session_init;
     }
     return 0;
 }
@@ -126,6 +158,8 @@ static int apply_all(const char *groups) {
     }
     uint8_t *caves = cave_total ? VirtualAlloc(NULL, cave_total, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE) : NULL;
     if (cave_total && !caves) { mlog("ABORT: VirtualAlloc failed"); return 0; }
+    g_caves = (uintptr_t)caves;
+    g_caves_len = cave_total;
 
     // Render everything first so a bad record aborts before any byte is written.
     static uint8_t site[OMD2MP_PATCH_COUNT][OMD2MP_MAX_SITE];
@@ -145,6 +179,7 @@ static int apply_all(const char *groups) {
         if (r) {
             mlog("ABORT: %s: %s - nothing was patched", p->id, omd2mp_result_str(r));
             if (caves) VirtualFree(caves, 0, MEM_RELEASE);
+            g_caves = g_caves_len = 0;
             return 0;
         }
     }
@@ -170,8 +205,32 @@ static void init(void) {
     if (g_players < 2 || g_players > OMD2MP_MAX_PLAYERS) { mlog("ABORT: players must be 2..%d", OMD2MP_MAX_PLAYERS); return; }
     if (!exe_timestamp_ok()) { mlog("ABORT: unsupported game build"); return; }
     int patched = 0;
+    init_netvars();
     if (GetPrivateProfileIntA("omd2mp", "enabled", 1, ini) == 0) mlog("patching disabled in ini");
     else patched = apply_all(groups);
+    crashlog_start(mlog, g_caves, g_caves + g_caves_len);
+
+    // Mock players for testing co-op alone. Host only; without the slots group the session
+    // still has its two vanilla slots, so party_size=2 works on an unpatched game too.
+    if (GetPrivateProfileIntA("mpdebug", "enabled", 0, ini)) {
+        MockConfig mc;
+        int slots = patched && omd2mp_group_enabled(groups, "slots");
+        memset(&mc, 0, sizeof mc);
+        mc.party_size = GetPrivateProfileIntA("mpdebug", "party_size", g_players, ini);
+        mc.join_delay_ms = GetPrivateProfileIntA("mpdebug", "join_delay_ms", 1500, ini);
+        mc.settle_ms = GetPrivateProfileIntA("mpdebug", "settle_ms", 750, ini);
+        {
+            char rm[16];
+            GetPrivateProfileStringA("mpdebug", "ready", "follow", rm, sizeof rm, ini);
+            mc.ready_mode = !_stricmp(rm, "auto") ? 1 : !_stricmp(rm, "manual") ? 2 : 0;
+            if (mc.ready_mode == 0 && _stricmp(rm, "follow")) mlog("mpdebug: ready=%s unknown; using follow", rm);
+        }
+        mc.mirror_profile = GetPrivateProfileIntA("mpdebug", "mirror_profile", 1, ini);
+        mc.slot_base = slots ? OMD2MP_SLOT_NEW_BASE : OMD2MP_SLOT_OLD_BASE;
+        mc.slot_count = slots ? g_players : 2;
+        mc.log = mlog;
+        mock_start(&mc);
+    }
 
     // Developer console: independent of patching, so it also works on an unpatched game.
     if (GetPrivateProfileIntA("dev", "enabled", 0, ini)) {
@@ -183,6 +242,8 @@ static void init(void) {
         dc.slots_patched = patched && omd2mp_group_enabled(groups, "slots");
         dc.log = mlog;
         devcon_start(&dc);
+    } else {
+        mlog("dev console off (needs a [dev] section with enabled=1 on its own line)");
     }
 }
 
@@ -192,6 +253,8 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved) {
         DisableThreadLibraryCalls(inst);
         load_real_version_dll();
         init();
+    } else if (reason == DLL_PROCESS_DETACH) {
+        crashlog_exit(reserved != NULL);
     }
     return TRUE;
 }

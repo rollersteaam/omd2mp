@@ -76,7 +76,7 @@ PcResult omd2mp_render_cave(const Patch *p, int N, uint32_t cave_va, PcEval eval
     for (int i = 0; i < p->nimm; i++) {
         const CaveImm *c = &p->imms[i];
         if (c->cave_off + (unsigned)c->size > p->cave_len) return PC_BADPATCH;
-        PcResult r = omd2mp_encode(PK_IMM, eval(c->expr, N), c->size, out + c->cave_off);
+        PcResult r = omd2mp_encode(c->isfloat ? PK_FLOAT : PK_IMM, eval(c->expr, N), c->size, out + c->cave_off);
         if (r) return r;
     }
     return PC_OK;

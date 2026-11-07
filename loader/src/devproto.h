@@ -49,4 +49,27 @@ int dev_unhex(const char *s, uint8_t *out, size_t cap);
 
 const char *dev_type_name(uint32_t type);
 
+// ---------------------------------------------------------------- cheats (devcheat.c)
+// The decisions behind the dev cheats, kept here so they are unit-tested without the game.
+
+// One character seen by `cheat killall`. Field sources are listed in devcheat.c.
+typedef struct DevKillCand {
+    int is_player;          // entity +0x39C bit 0 (player character)
+    int dead;               // health component +0x4C (alive flag) is 0
+    float health;           // health component +0x54
+    int team, player_team;  // health component +0x50, for this character and the local player
+    unsigned net_id;        // entity +0x39E; 0xFFFF = not networked
+    unsigned local_slot;    // Session +0x6C, or 0 without a session
+} DevKillCand;
+enum { DK_KILL = 0, DK_PLAYER, DK_DEAD, DK_ALLY, DK_NOT_OWNED };
+// Kill only living, non-player characters of another team that this peer owns. The owner
+// rule mirrors the game's death handler (0x49C000): it only broadcasts a death when the
+// entity's net id names the local slot, so killing someone else's entity would desync.
+int dev_kill_verdict(const DevKillCand *c);
+const char *dev_kill_verdict_name(int v);
+
+// God mode: the health a player character ends up with when the game asks for `wanted`.
+// Decreases are refused; heals and max-health changes pass through.
+float dev_god_health(int god, int is_player, float current, float wanted);
+
 #endif

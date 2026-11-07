@@ -61,9 +61,36 @@ class Structure(unittest.TestCase):
             self.assertEqual(cave[last_off - 1], 0xE9, p["id"])               # ends with jmp back
             self.assertEqual(last_off + 4, len(cave), p["id"])
             self.assertEqual(last_tgt, p["va"] + p["steal"], p["id"])
-            for ci in p["cave_imms"]:                                       # imms only in copied bytes
+            for ci in p["cave_imms"]:                       # imms only in copied or rewritten bytes
+                spans = p["verbatim"] + p.get("rewritten", [])
                 self.assertTrue(any(c <= ci["cave_off"] and ci["cave_off"] + ci["size"] <= c + n
-                                    for _, c, n in p["verbatim"]), p["id"])
+                                    for _, c, n in spans), p["id"])
+                if ci.get("isfloat"):
+                    self.assertEqual(ci["size"], 4, p["id"])
+
+    def test_shared_float_constants_untouched(self):
+        """0x857810 is MSVC's pooled 0.5f (screen centre, HUD, ragdolls). Rewriting it once
+        moved the crosshair to the top-left, the minimap to the bottom and stretched ragdolls."""
+        for p in PATCHES:
+            if p["kind"] in ("imm", "float"):
+                lo = p["va"] + p["off"]
+                self.assertFalse(lo < 0x857820 and 0x857810 < lo + p["size"], p["id"])
+            self.assertNotEqual(p["kind"], "float", f"{p['id']}: patch the reader, not a pooled constant")
+
+    @unittest.skipIf(capstone is None, "capstone not installed")
+    def test_economy_loads_one_over_n(self):
+        p = next(p for p in PATCHES if p["id"] == "economy.net_money_factor")
+        self.assertEqual(p["va"], 0x458042)
+        self.assertEqual(p["asm"], ["0x458042: movss xmm0, dword ptr [0x857810]"])
+        b = bytearray(render(p))
+        ci, = p["cave_imms"]
+        self.assertTrue(ci["isfloat"])
+        struct.pack_into("<f", b, ci["cave_off"], 1.0 / 4)
+        asm = [f"{i.mnemonic} {i.op_str}" for i in MD.disasm(bytes(b), 0x7F000000)]
+        self.assertEqual(asm[:4], ["push eax", f"mov eax, {struct.unpack('<I', struct.pack('<f', 0.25))[0]:#x}",
+                                   "movd xmm0, eax", "pop eax"])
+        self.assertTrue(asm[4].startswith("jmp "))
+        self.assertEqual(p["fixups"][-1][1], 0x458042 + 8)               # back to `mov ecx, [eax]`
 
     def test_no_stack_relative_slot_rewrites(self):
         """[esp+0x38]/[ebp+0x38] are stack locals (0x4B1ACD is the SEH frame), never the Session."""
@@ -83,18 +110,44 @@ class Structure(unittest.TestCase):
         """At N=2 the value expressions give back the original immediates."""
         N = 2
         for p in PATCHES:
-            if p["kind"] != "imm" or p["group"] == "netfix" or "session_alloc" in p["id"]:
+            if p["kind"] != "imm" or p["group"] == "netfix" or "session_alloc" in p["id"] or "SYM_" in p["expr"]:
                 continue
             orig = bytes.fromhex(p["orig"])[p["off"]:p["off"] + p["size"]]
             want = int.from_bytes(orig, "little", signed=True)
             self.assertEqual(eval(p["expr"], {"N": N}), want, p["id"])
 
     def test_session_alloc_grows(self):
+        n = META["max_players"]
+        self.assertLessEqual(META["slot_new_base"] + n * META["slot_size"], META["voice_time_new"])
+        self.assertLessEqual(META["voice_time_new"] + n * 8, META["recv_time_new"])
+        self.assertLessEqual(META["recv_time_new"] + n * 8, META["session_size"])
+        allocs = [p for p in PATCHES if "session_alloc" in p["id"]]
+        self.assertEqual(len(allocs), 3)
+        for p in allocs:
+            self.assertEqual(eval(p["expr"], {"N": 4}), META["session_size"])
+
+    def test_two_slot_limits_all_covered(self):
+        """Every 8-bit slot bound, u64 per-slot array access and NetVars[2] site found by hand
+        (build_patches.SLOT_BOUNDS_EXTRA etc.) is in the patch set, inside a cave or on its own."""
+        want = {0x4B1331, 0x4B13E5, 0x4B267A, 0x4B26FA, 0x4B2791, 0x4B2984, 0x4B2D4D, 0x4B2D96, 0x4B31B5,
+                0x4B3D70, 0x4571F2, 0x4B2A35, 0x4B3DA0,                                   # 8-bit bounds
+                0x45721C, 0x4B27B3, 0x4B29AA, 0x4B133E, 0x4B2F76, 0x4B2F7C, 0x4B31C2, 0x4B31DD,  # u64 arrays
+                0x4927E6, 0x5012B7, 0x5012F9, 0x501D1D, 0x502598, 0x502648, 0x5026A8, 0x502729,  # NetVars base
+                0x50128F, 0x501CF6, 0x502570, 0x502620, 0x502680, 0x502709, 0x4927C2, 0x501305}  # NetVars bounds
+        covered = set()
         for p in PATCHES:
-            if "session_alloc" in p["id"]:
-                for N in range(2, 17):
-                    self.assertGreaterEqual(eval(p["expr"], {"N": N}),
-                                            META["slot_new_base"] + N * META["slot_size"])
+            n = len(p["orig"]) // 2
+            covered |= {a for a in want if p["va"] <= a < p["va"] + n}
+        self.assertEqual(want - covered, set())
+
+    def test_u64_arrays_point_past_slots(self):
+        for p in PATCHES:
+            if p["id"].startswith("slots.U64_"):
+                self.assertTrue(p["rewritten"], p["id"])
+                if capstone:
+                    txt = " ".join(f"{i.mnemonic} {i.op_str}" for i in MD.disasm(render(p), 0x7F000000))
+                    bases = (META["voice_time_new"], META["recv_time_new"])
+                    self.assertTrue(any(hex(b + hi) in txt for b in bases for hi in (0, 4)), p["id"])  # lo or hi dword
 
 
 @unittest.skipIf(capstone is None, "capstone not installed")
@@ -118,7 +171,8 @@ class Disassembly(unittest.TestCase):
 
     def test_slot_relocation_moves_by_delta(self):
         disp = re.compile(r"\+ (0x[0-9a-f]+)\]")
-        for p in (p for p in PATCHES if p["kind"] == "tramp" and p["group"] == "slots" and "hook" not in p["id"]):
+        for p in (p for p in PATCHES if p["kind"] == "tramp" and p["group"] == "slots" and "hook" not in p["id"]
+                  and not p["id"].startswith("slots.U64_")):
             orig = {int(x.group(1), 16) for a in p["asm"] for x in [disp.search(a)] if x}
             new = {int(x.group(1), 16) for i in self.decode(p) for x in [disp.search(i.op_str)] if x}
             imm = re.compile(r"(?:add|lea) \w+, (?:\[\w+ \+ )?(0x[0-9a-f]+)")

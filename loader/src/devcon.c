@@ -15,7 +15,9 @@
 #include <string.h>
 #include "devcon.h"
 #include "devcall.h"
+#include "devcheat.h"
 #include "devproto.h"
+#include "mockpeer.h"
 
 #define APP_RUN_SLOT     0x00868E18u    // BApp vtable[16] = Run(), called once per frame
 #define APP_RUN_ORIG     0x004A77B0u
@@ -184,6 +186,82 @@ static void cmd_write(DevTok *t, int n) {
     rf("{\"ok\":true,\"written\":%d}", len);
 }
 
+static void cmd_cheat(DevTok *t, int n) {
+    static const char usage[] = "usage: cheat gold [amount] | cheat killall | cheat god [on|off]";
+    const char *e, *sub = n >= 2 ? t[1].s : "";
+    if (!strcmp(sub, "gold") && n <= 3) {
+        double a = 10000;
+        int cash = 0;
+        if (n == 3 && (sscanf(t[2].s, "%lf", &a) != 1 || a < -1e7 || a > 1e7)) { err("amount must be -10000000..10000000"); return; }
+        if ((e = devcheat_gold((int)a, &cash)) != NULL) { err(e); return; }
+        LOG("dev: cheat gold %d -> %d", (int)a, cash);
+        rf("{\"ok\":true,\"added\":%d,\"cash\":%d}", (int)a, cash);
+    } else if (!strcmp(sub, "killall") && n == 2) {
+        DevKillStats st;
+        if ((e = devcheat_killall(&st)) != NULL) { err(e); return; }
+        LOG("dev: cheat killall: %d killed of %d characters, %d faults", st.counts[DK_KILL], st.characters, st.faults);
+        rf("{\"ok\":true,\"entities\":%d,\"characters\":%d", st.entities, st.characters);
+        for (int v = DK_KILL; v <= DK_NOT_OWNED; v++) rf(",\"%s\":%d", dev_kill_verdict_name(v), st.counts[v]);
+        rf(",\"overflow\":%d,\"faults\":%d}", st.overflow, st.faults);
+    } else if (!strcmp(sub, "god") && n <= 3) {
+        if (n == 3) {
+            int on = !strcmp(t[2].s, "on") || !strcmp(t[2].s, "1") || !strcmp(t[2].s, "true");
+            if (!on && strcmp(t[2].s, "off") && strcmp(t[2].s, "0") && strcmp(t[2].s, "false")) { err(usage); return; }
+            if ((e = devcheat_god(on)) != NULL) { err(e); return; }
+            LOG("dev: cheat god %s", on ? "on" : "off");
+        }
+        rf("{\"ok\":true,\"god\":%s}", devcheat_god_enabled() ? "true" : "false");
+    } else err(usage);
+}
+
+// Where a command faulted: code, module+offset, the address an access violation touched,
+// and return-address-looking stack words inside the exe's .text (a cheap backtrace).
+static char g_fault[512];
+
+static void describe_addr(char *out, int cap, uintptr_t a) {
+    HMODULE m = NULL;
+    char path[MAX_PATH] = "?";
+    const char *base;
+    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           (LPCSTR)a, &m) && m)
+        GetModuleFileNameA(m, path, sizeof path);
+    base = strrchr(path, '\\') ? strrchr(path, '\\') + 1 : path;
+    _snprintf(out, cap - 1, "%#x (%s+%#x)", (unsigned)a, base, (unsigned)(a - (uintptr_t)m));
+    out[cap - 1] = 0;
+}
+
+static int fault_filter(EXCEPTION_POINTERS *ep) {
+    EXCEPTION_RECORD *r = ep->ExceptionRecord;
+    char where[160], *o = g_fault;
+    int left = sizeof g_fault, k, hints = 0;
+    uint32_t *sp = (uint32_t *)(uintptr_t)ep->ContextRecord->Esp;
+    describe_addr(where, sizeof where, (uintptr_t)r->ExceptionAddress);
+    k = _snprintf(o, left, "exception %#lx at %s", r->ExceptionCode, where);
+    if (k > 0) { o += k; left -= k; }
+    if (r->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && r->NumberParameters >= 2 && left > 0) {
+        k = _snprintf(o, left, " %s %#x", r->ExceptionInformation[0] == 1 ? "writing" :
+                      r->ExceptionInformation[0] == 8 ? "executing" : "reading", (unsigned)r->ExceptionInformation[1]);
+        if (k > 0) { o += k; left -= k; }
+    }
+    if (left > 0) { k = _snprintf(o, left, "; stack"); if (k > 0) { o += k; left -= k; } }
+    for (k = 0; k < 256 && hints < 12 && left > 12 && readable(sp + k, 4); k++)
+        if (sp[k] >= 0x401000u && sp[k] < 0x830000u) {
+            int w = _snprintf(o, left, " %#x", sp[k]);
+            if (w > 0) { o += w; left -= w; hints++; }
+        }
+    g_fault[sizeof g_fault - 1] = 0;
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+static void cmd_mock(DevTok *t, int n) {
+    const char *argv[DEV_MAX_ARGS + 2];
+    static char out[16384];
+    int i;
+    for (i = 0; i < n; i++) argv[i] = t[i].s;
+    mock_command(n, argv, out, sizeof out);
+    rs(out);
+}
+
 static void exec_main(char *line) {
     DevTok t[DEV_MAX_ARGS + 2];
     int n = dev_split(line, t, DEV_MAX_ARGS + 2);
@@ -200,15 +278,18 @@ static void exec_main(char *line) {
         else if (!strcmp(c, "timescale")) cmd_timescale(t, n);
         else if (!strcmp(c, "read")) cmd_read(t, n);
         else if (!strcmp(c, "write")) cmd_write(t, n);
+        else if (!strcmp(c, "cheat")) cmd_cheat(t, n);
+        else if (!strcmp(c, "mock")) cmd_mock(t, n);
         else if (!strcmp(c, "log")) {
             LOG("dev-client: %s", n > 1 ? t[1].s : "");
             rs("{\"ok\":true}");
-        } else err("unknown command (hello ping call session timescale read write log)");
-    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        } else err("unknown command (hello ping call session timescale read write cheat mock log)");
+    } __except (fault_filter(GetExceptionInformation())) {
         devcall_end();
-        char m[96];
-        wsprintfA(m, "exception %#lx while running the command (game state may be inconsistent)", GetExceptionCode());
-        LOG("dev: %s: %s", c, m);
+        char m[640];
+        _snprintf(m, sizeof m - 1, "%s while running '%s' (game state may be inconsistent)", g_fault, c);
+        m[sizeof m - 1] = 0;
+        LOG("dev: %s", m);
         err(m);
     }
 }
