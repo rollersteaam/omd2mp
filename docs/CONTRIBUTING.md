@@ -68,6 +68,10 @@ python tools/install.py
 python tools/install.py --uninstall
 ```
 
+The real game exe is `steamapps/common/Orcs Must Die 2/build/game/OrcsMustDie2.exe`;
+`build/release/OrcsMustDie2.exe` is only a small Qt launcher. `install.py` accepts the
+Steam folder or the game folder and picks the exe whose PE stamp is `0x51DD91A9`.
+
 ## 3. Repository map
 
 | Path | What it is |
@@ -82,6 +86,9 @@ python tools/install.py --uninstall
 | `loader/src/patchset_gen.h` | Generated from the JSON. Never edit by hand. |
 | `loader/src/patchcore.{h,c}` | Platform-independent patch engine: verify, encode, render caves/sites. Unit-tested on the host. |
 | `loader/src/dllmain.c` | The Windows part: `version.dll` export forwarding, ini/log, memory protection, the C hook. |
+| `loader/src/devproto.{h,c}` | Dev console protocol: tokenising, token → Scaleform value, value → JSON. Platform-free, unit-tested. |
+| `loader/src/devcall.{h,c}`, `devcon.{h,c}` | Dev console game side: calling script bindings, the per-frame hook, the named pipe (§12). |
+| `tools/devcon.py` | Dev console client: REPL, `state`, `watch`, `soak` (§12). |
 | `mods/rebalance/build_rebalance.py` | Generates the wave rebalance data mod. |
 | `tests/python/`, `tests/c/` | Unit tests; `tests/run_tests.py` runs both. |
 | `dist/omd2mp.ini` | Default loader settings shipped next to the DLL. |
@@ -209,8 +216,11 @@ entry point, so no game thread exists yet and patches can't race the game.
 5. It logs every step to `omd2mp.log` next to the exe. Look there first when something
    doesn't work.
 
-Only `patchcore.c` contains logic worth unit-testing, and it has no Windows
-dependencies. That is why the tests can run it on the host with any C compiler.
+After patching, if `[dev] enabled=1`, it starts the developer console (§12). That also
+happens with `[omd2mp] enabled=0`, so you can inspect an unpatched game.
+
+Only `patchcore.c` (and the dev console's `devproto.c`) contain logic worth unit-testing,
+and neither has Windows dependencies. That is why the tests can run it on the host with any C compiler.
 
 ## 8. Rebalancing
 
@@ -296,3 +306,106 @@ Not in scope for the multiplayer mod, but the groundwork is here:
   - Is N=2 still vanilla?
   - Does anything write to the game's files on disk? It must not.
 - In-game results go in the PR: the `omd2mp.log` excerpt, player count, map, wave reached.
+
+## 12. The developer console (automated testing in a running game)
+
+Problems that only show up at high rounds in co-op cannot be unit-tested. The dev console
+lets a script drive a running game and read its state without anyone at the keyboard.
+
+### 12.1 Turning it on
+
+In `omd2mp.ini` next to the exe:
+
+```ini
+[dev]
+enabled=1
+pipe=omd2mp-dev      ; pipe name; change it to run two game instances on one machine
+allow_write=0        ; 1 enables raw memory writes (patch experiments only)
+```
+
+`omd2mp.log` will then contain `dev: console on ...`. Open any menu once: the console can
+only call script bindings after it has seen the UI make a call.
+
+### 12.2 Using it
+
+```bash
+python tools/devcon.py                          # prompt: type raw commands, or `state`
+python tools/devcon.py call Net_PlayerCount     # one raw command
+python tools/devcon.py state                    # one JSON snapshot
+python tools/devcon.py watch --interval 1 --csv run.csv
+python tools/devcon.py soak --timescale 4 --until-wave 40 --ready-up --log soak.jsonl
+```
+
+`soak` is the high-round test.
+- It optionally speeds the game up and presses ready while a wave countdown is running.
+- It samples state every `--interval` seconds into the JSONL log.
+- It stops at `--until-wave`, on a win, at `--max-minutes`, or if the game goes away.
+  It always restores time scale 1 on exit.
+- It records these events:
+  - `disconnect`: `Net_PlayerCount` dropped.
+  - `silent_peer`: `Net_GetTimeSinceLastReceived(i)` exceeded `--silence`, 10 s by default.
+  - `connection_lost`: the pipe closed, meaning the game exited or crashed.
+  - `wave`: a new wave started.
+- The exit code is 0 if the run reached its goal, and 2 otherwise.
+
+**Co-op:** run `soak` on every machine in the session. Game speed is per process and not
+synchronised. Give every peer the same `--timescale`, or keep it at 1 when you want a
+faithful reproduction of the disconnect. Compare the JSONL logs from both sides.
+
+### 12.3 Protocol
+
+The client sends one line of space-separated tokens. A token in `"double quotes"` may
+contain spaces and the escapes `\" \\ \n`. The reply is one line of JSON: either
+`{"ok":true,...}` or `{"ok":false,"error":"..."}`.
+
+| Command | Reply | Notes |
+|---|---|---|
+| `hello` | `name, version, ticks, ui, players, slots_patched, allow_write` | answered on the pipe thread, works even while the game is loading |
+| `ping` | `ticks` | frames seen by the hook; if it stops rising, the main thread is stuck |
+| `call <Binding> [args]` | `returned, result:{type,value}` | any name in `research/bindings.tsv`; args: `true/false/null/undefined`, numbers, otherwise strings (quoted tokens are always strings) |
+| `session` | `session:{addr, local_slot, player_count, slot_base, slots:[{guid, system_index, state, flags}]}` | uses the relocated slot array when the `slots` group is applied |
+| `timescale <x>` | `timescale` | 0 < x ≤ 64, 1 = normal (Vision `VisTimer_cl::SetSlowMotion`) |
+| `read <addr> <len>` | `addr, hex` | len ≤ 1024, checked with `VirtualQuery` |
+| `write <addr> <hex>` | `written` | only with `allow_write=1`; logged |
+| `log <text>` | | writes `dev-client: <text>` to `omd2mp.log`, to mark test phases |
+
+All commands except `hello` run on the game's main thread, one per frame. The pipe accepts
+local clients only (`PIPE_REJECT_REMOTE_CLIENTS`), one at a time.
+
+### 12.4 How it works
+
+- **Per-frame hook.** The game application's vtable (`0x868DD8`) slot 16 is `Run()`
+  (`0x4A77B0`), called once per frame. The console swaps that pointer for `run_hook`, which
+  runs at most one pending command and then calls the original.
+- **Script bindings.** The UI dispatcher (`0x48E500`, reached only through vtable slot
+  `0x866290`) looks a name up with `0x48DE10` and calls the handler as
+  `handler(ui_self, GFxValue *args, unsigned argc, 0)` (cdecl).
+  - A second hook on that slot records `ui_self`; this is why a menu must be opened once.
+  - A handler returns its value through `movie->vtable[50]` (`SetExternalInterfaceRetVal`),
+    where `movie = *(ui_self + 0x40)`. `devcall.c` routes that slot through a function that
+    captures the value during a console call and forwards it at all other times.
+- **Values** are Scaleform GFx 3 `GFxValue`s, 16 bytes on x86: `{iface, type, value@+8}`.
+  The types are 0 undefined, 1 null, 2 bool, 3 number (double), 4 string, 5 wide string,
+  6 object, 7 array, plus the managed flag `0x40`.
+- **Safety.**
+  - Every pointer the console replaces is checked against its expected original first; on
+    a mismatch it logs and stays off.
+  - Each command runs inside `__try/__except`, so a bad `call` or `read` returns an error
+    instead of crashing the game. The game may still be left inconsistent, though: treat
+    the session as tainted.
+  - If the main thread does not pick up a command within 5 s, the command is cancelled.
+
+### 12.5 What is verified
+
+| Part | Verified by |
+|---|---|
+| protocol (`devproto.c`) | `tests/c/test_devproto.c` (gcc and MSVC) |
+| client logic, soak detection, CSV | `tests/python/test_devcon.py`, against a fake console |
+| client ↔ real Windows named pipe | manual self-test with a local stdlib pipe server |
+| hooks, binding calls, timescale in the game | **not yet**: needs an in-game run. Report `omd2mp.log` plus `devcon.py state` output. |
+
+Open questions:
+- Is `VIS_CFG_OnOff` "on" really 1?
+- Do any bindings return values through a movie method other than slot 50? Those would
+  show `returned:false`.
+- Does changing the time scale on one co-op peer cause a desync?

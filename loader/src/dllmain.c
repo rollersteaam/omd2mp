@@ -17,6 +17,7 @@
 #include <stdarg.h>
 #include "patchcore.h"
 #include "patchset_gen.h"
+#include "devcon.h"
 
 #pragma comment(linker, "/export:GetFileVersionInfoA=_px_GetFileVersionInfoA")
 #pragma comment(linker, "/export:GetFileVersionInfoByHandle=_px_GetFileVersionInfoByHandle")
@@ -109,7 +110,8 @@ static int exe_timestamp_ok(void) {
     return (uintptr_t)base == 0x400000 && nt->FileHeader.TimeDateStamp == OMD2MP_EXE_TIMESTAMP;
 }
 
-static void apply_all(const char *groups) {
+// Returns 1 if every enabled patch was written.
+static int apply_all(const char *groups) {
     size_t i, cave_total = 0, enabled = 0;
     for (i = 0; i < OMD2MP_PATCH_COUNT; i++) {
         const Patch *p = &OMD2MP_PATCHES[i];
@@ -118,16 +120,17 @@ static void apply_all(const char *groups) {
         PcResult r = omd2mp_check(p, (const uint8_t *)(uintptr_t)p->va);
         if (r) {
             mlog("ABORT: %s @%#x: %s - nothing was patched", p->id, p->va, omd2mp_result_str(r));
-            return;
+            return 0;
         }
         cave_total += (p->cave_len + 15u) & ~15u;
     }
     uint8_t *caves = cave_total ? VirtualAlloc(NULL, cave_total, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE) : NULL;
-    if (cave_total && !caves) { mlog("ABORT: VirtualAlloc failed"); return; }
+    if (cave_total && !caves) { mlog("ABORT: VirtualAlloc failed"); return 0; }
 
     // Render everything first so a bad record aborts before any byte is written.
     static uint8_t site[OMD2MP_PATCH_COUNT][OMD2MP_MAX_SITE];
     uint8_t *cur = caves;
+    int ok = 1;
     for (i = 0; i < OMD2MP_PATCH_COUNT; i++) {
         const Patch *p = &OMD2MP_PATCHES[i];
         if (!omd2mp_group_enabled(groups, p->group)) continue;
@@ -142,16 +145,17 @@ static void apply_all(const char *groups) {
         if (r) {
             mlog("ABORT: %s: %s - nothing was patched", p->id, omd2mp_result_str(r));
             if (caves) VirtualFree(caves, 0, MEM_RELEASE);
-            return;
+            return 0;
         }
     }
     for (i = 0; i < OMD2MP_PATCH_COUNT; i++) {
         const Patch *p = &OMD2MP_PATCHES[i];
         if (!omd2mp_group_enabled(groups, p->group)) continue;
-        if (!write_code(p->va, site[i], p->orig_len)) mlog("WARN: VirtualProtect failed at %#x (%s)", p->va, p->id);
+        if (!write_code(p->va, site[i], p->orig_len)) { mlog("WARN: VirtualProtect failed at %#x (%s)", p->va, p->id); ok = 0; }
         else mlog("patched %-40s @%#x", p->id, p->va);
     }
     mlog("done: %u patches for %d players, %u bytes of caves", (unsigned)enabled, g_players, (unsigned)cave_total);
+    return ok;
 }
 
 static void init(void) {
@@ -163,10 +167,23 @@ static void init(void) {
     g_players = GetPrivateProfileIntA("omd2mp", "players", 4, ini);
     GetPrivateProfileStringA("omd2mp", "groups", "lobby,mesh,slots,economy", groups, sizeof groups, ini);
     mlog("omd2mp loader: players=%d groups=%s", g_players, groups);
-    if (GetPrivateProfileIntA("omd2mp", "enabled", 1, ini) == 0) { mlog("disabled in ini"); return; }
     if (g_players < 2 || g_players > OMD2MP_MAX_PLAYERS) { mlog("ABORT: players must be 2..%d", OMD2MP_MAX_PLAYERS); return; }
     if (!exe_timestamp_ok()) { mlog("ABORT: unsupported game build"); return; }
-    apply_all(groups);
+    int patched = 0;
+    if (GetPrivateProfileIntA("omd2mp", "enabled", 1, ini) == 0) mlog("patching disabled in ini");
+    else patched = apply_all(groups);
+
+    // Developer console: independent of patching, so it also works on an unpatched game.
+    if (GetPrivateProfileIntA("dev", "enabled", 0, ini)) {
+        DevConfig dc;
+        memset(&dc, 0, sizeof dc);
+        GetPrivateProfileStringA("dev", "pipe", "omd2mp-dev", dc.pipe, sizeof dc.pipe, ini);
+        dc.allow_write = GetPrivateProfileIntA("dev", "allow_write", 0, ini);
+        dc.players = patched ? g_players : 2;
+        dc.slots_patched = patched && omd2mp_group_enabled(groups, "slots");
+        dc.log = mlog;
+        devcon_start(&dc);
+    }
 }
 
 BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved) {

@@ -1,7 +1,7 @@
 """
 build_patches.py - turn the research into a verified, data-driven patch set.
 
-Inputs : OrcsMustDie2.exe (build stamp 0x51DE1E29 / 2013-07-11), research/slot_sites.tsv
+Inputs : OrcsMustDie2.exe (build stamp 0x51DD91A9 / 2013-07-11), research/slot_sites.tsv
 Outputs: patches/patchset.json          (human readable, reviewed in PRs)
          loader/src/patchset_gen.h      (compiled into omd2mp's version.dll)
 

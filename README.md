@@ -14,11 +14,12 @@ rebalance for player count, and document the game so future mods can add charact
 | Wave rebalance data mod (`mods/rebalance/`) | generator done, **not playtested** |
 | Contributor guide | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) |
 | Co-op disconnect fix | proposal: `docs/DISCONNECT_FIX_PROPOSAL.md` (patch exists as group `netfix`, off by default) |
+| Developer console (`tools/devcon.py`; `[dev] enabled=1`) | built, protocol + client unit-tested, **not run in-game**: state reads, binding calls, time scale, automated high-round `soak` with disconnect detection ([§12](docs/CONTRIBUTING.md#12-the-developer-console-automated-testing-in-a-running-game)) |
 | Phase 2 (HUD / `Net_OtherIndex` for >2 players) | not started |
 
 Run all tests: `rea/venv/Scripts/python.exe tests/run_tests.py`.
 
-## Key findings (OrcsMustDie2.exe, TimeDateStamp 0x51DE1E29, fixed base 0x400000)
+## Key findings (OrcsMustDie2.exe, TimeDateStamp 0x51DD91A9, fixed base 0x400000)
 - Networking: RakNet 4.0 (static, symbols exported) over Steam P2P via a `SocketLayerOverride`; Steam lobbies through a custom Lobby2 client.
 - Globals: `0xB9D0B8` RakPeer, `0xB9D0C0` Lobby2 msg factory, `0xB9D0C4` Steam Lobby2 client, `0xB9D0C8` FullyConnectedMesh2, `0xB9D0AD` is-host, `0xB9D108` Session.
 - 2-player limits:
@@ -42,7 +43,8 @@ REA (`rea-agents` 6.8.0) was used for PE import/export evidence; no native decom
 python tests/run_tests.py
 cmake -S . -B build/msvc -G "Visual Studio 16 2019" -A Win32 && cmake --build build/msvc --config Release
 python mods/rebalance/build_rebalance.py --players 4
-python tools/install.py            # copies version.dll + omd2mp.ini into the game folder
+python tools/install.py            # copies version.dll + omd2mp.ini into <Steam>/Orcs Must Die 2/build/game
+python tools/devcon.py soak --until-wave 40 --ready-up --log soak.jsonl   # needs [dev] enabled=1
 python tools/re/pe32.py strings|xref|dis|func|calls|rtti|vtable ...
 python tools/re/bindings.py [regex]
 python tools/re/slotscan.py

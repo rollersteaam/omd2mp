@@ -1,7 +1,7 @@
 # Proposal: co-op disconnects at high rounds (esp. LAN)
 
 Status: **proposal only, not applied.** Found by static analysis of `OrcsMustDie2.exe`
-(TimeDateStamp `0x51DE1E29`). Not yet reproduced or tested in-game.
+(TimeDateStamp `0x51DD91A9`). Not yet reproduced or tested in-game.
 
 ## Symptom
 Co-op sessions drop at high wave counts (typically Endless), more often on LAN.
