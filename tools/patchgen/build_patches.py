@@ -293,6 +293,15 @@ class Gen:
                  "host RakPeer::Startup(maxConnections=1,...)")
         self.imm("lobby.host_max_incoming", "lobby", 0x456F2D, "6a01", 1, 1, "N-1",
                  "host RakPeer::SetMaximumIncomingConnections(1)")
+        # RakPeer::GetMaximumIncomingConnections (vtable slot 8): `mov ax,[ecx+0x10]; ret` ->
+        # `mov eax,N-1; ret`. In 3-player tests the 3rd joiner got ID_NO_FREE_INCOMING_CONNECTIONS
+        # (the only sender is 0x6023b5, gated by AllowIncomingConnections 0x5f87b0, which calls this)
+        # while just one player was connected. Forcing the getter covers the host whatever reset its
+        # limit, and lets clients accept client<->client mesh links (they never set one: limit 0).
+        # The game's own join gate (Session::OnConnect, [0xBBB99C]+8) still decides who gets in.
+        self.tramp("lobby.force_max_incoming", "lobby", 0x5F7900,
+                   lambda ins: (b"\xb8\0\0\0\0", [dict(off=1, size=4, expr="N-1")]),
+                   "RakPeer::GetMaximumIncomingConnections returns N-1 on every peer")
         # ----------------------------------------------------------------- mesh
         self.imm("mesh.client_startup_maxconn", "mesh", 0x4570C2, "6a01", 1, 1, "N-1",
                  "client RakPeer::Startup(maxConnections=1,...) - needed only for client<->client links")

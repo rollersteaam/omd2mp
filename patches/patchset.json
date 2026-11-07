@@ -46,6 +46,50 @@
    "why": "host RakPeer::SetMaximumIncomingConnections(1)"
   },
   {
+   "id": "lobby.force_max_incoming",
+   "group": "lobby",
+   "kind": "tramp",
+   "va": 6256896,
+   "orig": "668b4110c3",
+   "steal": 5,
+   "cave": "b800000000c3e900000000",
+   "fixups": [
+    [
+     7,
+     6256901
+    ]
+   ],
+   "why": "RakPeer::GetMaximumIncomingConnections returns N-1 on every peer",
+   "verbatim": [
+    [
+     6256900,
+     5,
+     1
+    ]
+   ],
+   "rewritten": [
+    [
+     6256896,
+     0,
+     5
+    ]
+   ],
+   "cave_imms": [
+    {
+     "id": "lobby.force_max_incoming",
+     "cave_off": 1,
+     "size": 4,
+     "expr": "N-1",
+     "isfloat": false,
+     "why": "RakPeer::GetMaximumIncomingConnections returns N-1 on every peer"
+    }
+   ],
+   "asm": [
+    "0x5f7900: mov ax, word ptr [ecx + 0x10]",
+    "0x5f7904: ret "
+   ]
+  },
+  {
    "id": "mesh.client_startup_maxconn",
    "group": "mesh",
    "kind": "imm",

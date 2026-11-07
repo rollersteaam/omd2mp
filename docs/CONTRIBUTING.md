@@ -268,7 +268,7 @@ identity.
   - Slot replication bounds.
   - For **every generated patch and N = 2..8**: it renders; the cave's last jump returns
     to `va + steal`; no two sites overlap; at N=2 every value patch reproduces the vanilla
-    bytes. Sizing patches and `netfix` are excluded, since they change behaviour on purpose.
+    bytes. Sizing patches, `netfix` and `lobby.force_max_incoming` are excluded, since they change behaviour on purpose.
 - **Python (`tests/python/`)**:
   - Structural invariants of `patchset.json`.
   - With capstone: every cave decodes cleanly, every fixup is a branch operand, every

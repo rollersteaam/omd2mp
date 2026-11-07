@@ -142,7 +142,8 @@ static void test_generated_table(void) {
             // vanilla identity: for 2 players, value patches reproduce the original bytes,
             // except the ones that change behaviour regardless of N.
             int n_independent = !strcmp(p->group, "netfix") || !strncmp(p->id, "slots.session_alloc", 19) ||
-                                !strncmp(p->id, "slots.netvars_base", 18) || !strncmp(p->id, "slots.heroes", 12);
+                                !strncmp(p->id, "slots.netvars_base", 18) || !strncmp(p->id, "slots.heroes", 12) ||
+                                !strcmp(p->id, "lobby.force_max_incoming");   // clients: 0 -> N-1
             if (N == 2 && p->kind != PK_TRAMP && !n_independent) {
                 if (memcmp(site, p->orig, p->orig_len)) printf("not vanilla at N=2: %s\n", p->id);
                 CHECK(memcmp(site, p->orig, p->orig_len) == 0);

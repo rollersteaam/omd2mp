@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <intrin.h>
 #include <stdint.h>
 #include "nettrace.h"
 
@@ -18,6 +19,8 @@
 #define ACCEPT_GLOBAL    0x00BBB99Cu    // [ptr]+8 != 0: Session::OnConnect (0x4B23F0) accepts
 #define RAKPEER_VTABLE   0x0083375Cu
 
+#define V_SETMAXIN  7
+#define V_GETMAXIN  8
 #define V_NUMCONN   9
 #define V_CONNECT   12
 #define V_SEND_BS   19
@@ -29,6 +32,7 @@
 #define MAX_SLOTS   16
 
 #define MSG_TIMESTAMP 0x1B
+#define RAK_NUM_INCOMING 0x005F84F0u   // RakPeer::GetNumberOfIncomingConnections (thiscall)
 
 #pragma pack(push, 4)
 typedef struct RakGuid { uint64_t g; uint16_t idx; uint16_t pad[3]; } RakGuid;
@@ -45,6 +49,7 @@ typedef char check_pkt[offsetof(Packet, guid) == 0x18 && offsetof(Packet, length
                        offsetof(Packet, data) == 0x30 ? 1 : -1];
 
 typedef uint16_t(__fastcall *NumConnFn)(void *self, void *edx);
+typedef void(__fastcall *SetMaxInFn)(void *self, void *edx, uint16_t n);
 typedef uint32_t(__fastcall *SendBsFn)(void *self, void *edx, const BitStream *bs, int prio, int rel,
                                        char chan, AOG target, char broadcast, uint32_t receipt);
 typedef uint32_t(__fastcall *SendRawFn)(void *self, void *edx, const char *data, int len, int prio, int rel,
@@ -59,6 +64,8 @@ static FILE *g_f;
 static CRITICAL_SECTION g_cs;
 static uint32_t g_t0, g_last_snap, g_last_sum;
 static NumConnFn o_numconn;
+static NumConnFn o_getmaxin;      // same shape: uint16 (this)
+static SetMaxInFn o_setmaxin;
 static SendBsFn o_send_bs;
 static SendRawFn o_send_raw;
 static ReceiveFn o_receive;
@@ -145,6 +152,7 @@ static void trace(int dir, const uint8_t *d, uint32_t len, const RakGuid *peer, 
 typedef struct Snap {
     uint8_t valid, is_host, accepting;
     uint16_t conns;
+    uint16_t max_peers, max_in_raw, max_in, incoming;   // RakPeer +0xe, +0x10, getter, count
     uint32_t session, status;
     int32_t local_slot, player_count;
     uint8_t dirty;
@@ -163,6 +171,12 @@ static void take(Snap *s, void *self) {
         s->accepting = acc ? acc[8] : 0xFF;
         s->status = *(volatile uint32_t *)(uintptr_t)SLOT_STATUS_GLOBAL;
         s->conns = self && o_numconn ? o_numconn(self, NULL) : 0xFFFF;
+        if (self) {
+            s->max_peers = *(uint16_t *)((uint8_t *)self + 0xE);
+            s->max_in_raw = *(uint16_t *)((uint8_t *)self + 0x10);
+            s->max_in = o_getmaxin ? o_getmaxin(self, NULL) : 0xFFFF;
+            s->incoming = ((NumConnFn)(uintptr_t)RAK_NUM_INCOMING)(self, NULL);
+        }
         s->session = (uint32_t)(uintptr_t)ses;
         if (ses) {
             s->dirty = ses[0x68];
@@ -200,8 +214,10 @@ static void snapshot(void *self, int force) {
     if (!force && !memcmp(&s, &g_prev, sizeof s)) return;
     g_prev = s;
     if (!s.valid) { out("SESSION snapshot: read faulted"); return; }
-    out("SESSION %s conns=%u accepting=%d status@b9d10c=%u session=%#x localSlot=%d playerCount=%d dirty=%u",
-        s.is_host ? "HOST" : "CLIENT", s.conns, s.accepting == 0xFF ? -1 : s.accepting, s.status,
+    out("SESSION %s conns=%u incoming=%u maxIncoming=%u(field %u) maxPeers=%u accepting=%d status@b9d10c=%u "
+        "session=%#x localSlot=%d playerCount=%d dirty=%u",
+        s.is_host ? "HOST" : "CLIENT", s.conns, s.incoming, s.max_in, s.max_in_raw, s.max_peers,
+        s.accepting == 0xFF ? -1 : s.accepting, s.status,
         s.session, s.local_slot, s.player_count, s.dirty);
     if (!s.session) return;
     for (i = 0; i < 2; i++) log_slot("old", i, s.old_slots[i]);
@@ -372,6 +388,16 @@ static void lobby_install(void) {
         (uint32_t)(uintptr_t)o_lobby[1], (uint32_t)(uintptr_t)o_lobby[2], (uint32_t)(uintptr_t)o_lobby[3]);
 }
 
+// ------------------------------------------------------------------ max incoming
+// RakNet refuses a joiner with ID_NO_FREE_INCOMING_CONNECTIONS when incoming >= the limit.
+// Log every write of the limit with its caller, so a reset can be traced to its source.
+static void __fastcall h_setmaxin(void *self, void *edx, uint16_t n) {
+    (void)edx;
+    out("SET_MAX_INCOMING %u (was %u) caller=%#x", n, *(uint16_t *)((uint8_t *)self + 0x10),
+        (uint32_t)(uintptr_t)_ReturnAddress());
+    o_setmaxin(self, NULL, n);
+}
+
 // ------------------------------------------------------------------ install
 int nettrace_start(const NetTraceConfig *cfg) {
     uint32_t *vt = (uint32_t *)(uintptr_t)RAKPEER_VTABLE;
@@ -389,6 +415,8 @@ int nettrace_start(const NetTraceConfig *cfg) {
         return 0;
     }
     o_numconn = (NumConnFn)(uintptr_t)vt[V_NUMCONN];
+    o_getmaxin = (NumConnFn)(uintptr_t)vt[V_GETMAXIN];
+    o_setmaxin = (SetMaxInFn)(uintptr_t)vt[V_SETMAXIN];
     o_send_bs = (SendBsFn)(uintptr_t)vt[V_SEND_BS];
     o_send_raw = (SendRawFn)(uintptr_t)vt[V_SEND_RAW];
     o_receive = (ReceiveFn)(uintptr_t)vt[V_RECEIVE];
@@ -397,6 +425,7 @@ int nettrace_start(const NetTraceConfig *cfg) {
     vt[V_SEND_RAW] = (uint32_t)(uintptr_t)h_send_raw;
     vt[V_RECEIVE] = (uint32_t)(uintptr_t)h_receive;
     vt[V_CONNECT] = (uint32_t)(uintptr_t)h_connect;
+    vt[V_SETMAXIN] = (uint32_t)(uintptr_t)h_setmaxin;
     VirtualProtect(vt, 4 * (V_RECEIVE + 1), old, &old);
     out("nettrace on: full=%d every=%d summary_s=%d snapshot_ms=%d slots=%d @%#x "
         "(chained send_bs=%#x send_raw=%#x receive=%#x)", g_cfg.full, g_cfg.every, g_cfg.summary_s,
