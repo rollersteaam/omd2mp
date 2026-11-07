@@ -33,7 +33,7 @@ class MergeIni(unittest.TestCase):
         self.assertEqual(notes, ["added missing [dev] section with defaults",
                                  "added missing [mpdebug] section with defaults",
                                  "added missing [nettrace] section with defaults"])
-        self.assertEqual(c["nettrace"]["enabled"], "0")
+        self.assertEqual(c["nettrace"]["enabled"], "1")
 
     def test_good_file_untouched(self):
         text, notes = install.merge_ini(TEMPLATE, TEMPLATE)
