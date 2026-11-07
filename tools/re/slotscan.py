@@ -118,8 +118,9 @@ def main():
             if any(w[2] == "lea" and re.search(r"\[(e\w\w) \+ \1\*2", w[3]) for w in nxt):
                 t, f = tag(a)
                 rows.append((a, size, "L:bound<=1", t, f, f"{mn} {ops}"))
-        if (mn == "lea" and re.fullmatch(r"e\w\w, \[e\w\w \+ 0x38\]", ops)) or \
-           (mn == "add" and re.fullmatch(r"e\w\w, 0x38", ops)):
+        # an esp/ebp base is a stack local (e.g. the SEH frame at 0x4B1ACD), never the Session
+        if (mn == "lea" and re.fullmatch(r"e\w\w, \[e(?!sp|bp)\w\w \+ 0x38\]", ops)) or \
+           (mn == "add" and re.fullmatch(r"e(?!sp|bp)\w\w, 0x38", ops)):
             nxt = ins[k + 1:k + 12]
             if any(w[2] == "add" and w[3].endswith(", 0x18") for w in nxt):
                 t, f = tag(a)

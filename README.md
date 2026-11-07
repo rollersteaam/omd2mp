@@ -8,14 +8,15 @@ rebalance for player count, and document the game so future mods can add charact
 |---|---|
 | Reverse-engineering toolkit (`tools/re/`) | done |
 | Network/lobby limits mapped | done (see findings) |
-| Player-slot array inventory (`research/slot_sites.tsv`) | done, 100 session sites |
-| Patch set generator (`tools/patchgen/build_patches.py`) | written, not verified in-game |
-| Loader DLL, offline verifier | **not started** |
-| Rebalance data mod | not started |
-| Contributor guide | not started |
-| Co-op disconnect fix | proposal: `docs/DISCONNECT_FIX_PROPOSAL.md` |
+| Player-slot array inventory (`research/slot_sites.tsv`) | done: 95 session sites |
+| Patch set (`patches/patchset.json`, 108 patches) | generated, unit-tested, **not run in-game** |
+| Loader DLL (`loader/`, builds `version.dll`) | built, unit-tested, **not run in-game** |
+| Wave rebalance data mod (`mods/rebalance/`) | generator done, **not playtested** |
+| Contributor guide | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) |
+| Co-op disconnect fix | proposal: `docs/DISCONNECT_FIX_PROPOSAL.md` (patch exists as group `netfix`, off by default) |
+| Phase 2 (HUD / `Net_OtherIndex` for >2 players) | not started |
 
-Nothing has been tested in-game.
+Run all tests: `rea/venv/Scripts/python.exe tests/run_tests.py`.
 
 ## Key findings (OrcsMustDie2.exe, TimeDateStamp 0x51DE1E29, fixed base 0x400000)
 - Networking: RakNet 4.0 (static, symbols exported) over Steam P2P via a `SocketLayerOverride`; Steam lobbies through a custom Lobby2 client.
@@ -38,6 +39,10 @@ Python with `pefile`, `capstone`, `numpy` (the venv in `Desktop/rea/venv` works)
 REA (`rea-agents` 6.8.0) was used for PE import/export evidence; no native decompiler backend is configured.
 
 ```
+python tests/run_tests.py
+cmake -S . -B build/msvc -G "Visual Studio 16 2019" -A Win32 && cmake --build build/msvc --config Release
+python mods/rebalance/build_rebalance.py --players 4
+python tools/install.py            # copies version.dll + omd2mp.ini into the game folder
 python tools/re/pe32.py strings|xref|dis|func|calls|rtti|vtable ...
 python tools/re/bindings.py [regex]
 python tools/re/slotscan.py

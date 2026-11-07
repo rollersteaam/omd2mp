@@ -35,18 +35,15 @@ va	size	kind	tag	function	instruction
 0x00492781	3	L:loop<2	session	0x491ed0	cmp esi, 2
 0x004927d6	4	C:slot+0x10	session	0x491ed0	cmp dword ptr [edi + edx*8], 0
 0x00493098	4	B:slot+0x10	session	0x492f00	cmp dword ptr [edx + eax*8], 0
-0x00493617	4	K:base+0x38	session	0x4930e0	lea ecx, [esp + 0x38]
 0x004979bf	4	B:slot+0x10	session	0x497980	cmp dword ptr [ecx + eax*8], 0
 0x0049ee9f	3	D:slot-0x38 base	review	0x49ee50	lea eax, [edi + ecx*8]
 0x004a1d86	3	D:slot-0x38 base	review	0x4a1a30	lea esi, [esi + eax*8]
-0x004ad2ad	4	K:base+0x38	review	0x4ad060	lea edx, [esp + 0x38]
 0x004b13f4	4	A:slot+0x0	session	0x4b1140	lea ecx, [ecx + eax*8 + 0x38]
 0x004b1405	4	C:slot+0x10	session	0x4b1140	cmp dword ptr [edi + ecx*8], 5
 0x004b18f2	3	B:slot+0x10	session	0x4b1870	mov eax, dword ptr [edi + eax*8]
 0x004b191e	4	A:slot+0x0	session	0x4b1870	lea ecx, [edi + ecx*8 + 0x38]
 0x004b1a14	4	B:slot+0x10	session	0x4b1a00	cmp dword ptr [edx + eax*8], 0
 0x004b1a6f	3	K:base+0x38	session	0x4b1a60	lea esi, [ebx + 0x38]
-0x004b1acd	4	K:base+0x38	session	0x4b1aa0	lea eax, [esp + 0x38]
 0x004b1ae9	3	K:base+0x38	session	0x4b1aa0	lea esi, [ebx + 0x38]
 0x004b1b3d	4	B:slot+0x10	session	0x4b1aa0	cmp dword ptr [ebx + eax*8], 0
 0x004b1b5d	4	A:slot+0x0	session	0x4b1aa0	lea ecx, [ebx + ecx*8 + 0x38]
@@ -121,12 +118,10 @@ va	size	kind	tag	function	instruction
 0x005018a4	3	L:bound<=1	session	0x501710	cmp eax, 1
 0x005018b5	4	A:slot+0x0	session	0x501710	lea ecx, [eax + edx*8 + 0x38]
 0x00501d0d	4	C:slot+0x10	session	0x501bb0	cmp dword ptr [edx + esi*8], 0
-0x00502227	4	K:base+0x38	session	0x501bb0	lea eax, [esp + 0x38]
 0x00502587	4	C:slot+0x10	session	0x502570	cmp dword ptr [edx + esi*8], 0
 0x00502637	4	C:slot+0x10	session	0x502620	cmp dword ptr [edx + edi*8], 0
 0x00502697	4	C:slot+0x10	session	0x502680	cmp dword ptr [edx + edi*8], 0
 0x00502719	4	C:slot+0x10	session	0x5026f0	cmp dword ptr [edx + esi*8], 0
-0x00503c48	4	K:base+0x38	session	0x503400	lea esi, [esp + 0x38]
 0x00503f33	4	B:slot+0x10	session	0x503400	cmp dword ptr [edx + eax*8], 0
 0x005085a7	3	D:slot-0x38 base	review	0x5082e0	lea edi, [eax + edx*8]
 0x00508e93	3	D:slot-0x38 base	review	0x508e00	lea edi, [edx + ecx*8]
@@ -138,8 +133,6 @@ va	size	kind	tag	function	instruction
 0x0052e718	4	B:slot+0x10	session	0x52e700	cmp dword ptr [edi + eax*8], 0
 0x0053634a	3	L:bound<=1	session	0x536340	cmp eax, 1
 0x00536353	4	A:slot+0x0	session	0x536340	lea ecx, [ecx + eax*8 + 0x38]
-0x0053ffa8	4	K:base+0x38	review	0x53ff10	lea edx, [esp + 0x38]
-0x0054016b	4	K:base+0x38	review	0x540100	lea edx, [esp + 0x38]
 0x00541320	3	D:slot-0x38 base	review	0x541030	lea esi, [esi + eax*8]
 0x005421ec	3	D:slot-0x38 base	review	0x5421b0	lea esi, [eax + ecx*8]
 0x00542418	3	D:slot-0x38 base	review	0x5423f0	lea eax, [edx + ecx*8]
@@ -151,8 +144,6 @@ va	size	kind	tag	function	instruction
 0x005bafd7	3	D:slot-0x38 base	review	0x5bafc0	lea edx, [ecx + eax*8]
 0x005be363	3	D:slot-0x38 base	review	0x5be340	lea eax, [edx + ecx*8]
 0x005be839	3	D:slot-0x38 base	review	0x5be560	lea ecx, [eax + edx*8]
-0x005c21d6	4	K:base+0x38	review	0x5c2170	lea eax, [esp + 0x38]
-0x005c832d	4	K:base+0x38	review	0x5c7dc0	lea edx, [esp + 0x38]
 0x00605f4b	3	D:slot-0x38 base	review	0x605ee0	lea eax, [ecx + eax*8]
 0x00606dfa	3	D:slot-0x38 base	review	0x606d60	lea eax, [eax + edx*8]
 0x00606f03	3	D:slot-0x38 base	review	0x606e30	lea eax, [edx + ecx*8]
@@ -163,13 +154,11 @@ va	size	kind	tag	function	instruction
 0x006172c4	3	D:slot-0x38 base	review	0x617230	lea esi, [ecx + eax*8]
 0x006173a5	3	D:slot-0x38 base	review	0x6172e0	lea edi, [eax + edx*8]
 0x0061bead	4	A:slot+0x14	review	0x61bdb0	lea edx, [esp + ecx*8 + 0x4c]
-0x006200c2	4	K:base+0x38	review	0x61ffd0	lea edx, [esp + 0x38]
 0x00663d5a	4	A:slot+0x0	review	0x663d50	lea eax, [ecx + eax*8 + 0x38]
 0x00665a39	3	D:slot-0x38 base	review	0x665a30	lea esi, [eax + ecx*8]
 0x00665b97	3	D:slot-0x38 base	review	0x665a70	lea ecx, [edi + eax*8]
 0x00665ca6	3	D:slot-0x38 base	review	0x665a70	lea eax, [edx + ecx*8]
 0x006660db	3	D:slot-0x38 base	review	0x665a70	lea ecx, [edi + eax*8]
-0x006661f1	4	K:base+0x38	review	0x665a70	lea ecx, [esp + 0x38]
 0x00666227	3	D:slot-0x38 base	review	0x665a70	lea ecx, [eax + edx*8]
 0x00666241	4	D:slot-0x38 base	review	0x665a70	lea eax, [ebp + edx*8]
 0x00666550	3	D:slot-0x38 base	review	0x665a70	lea edx, [ecx + eax*8]
@@ -177,7 +166,6 @@ va	size	kind	tag	function	instruction
 0x00666871	3	D:slot-0x38 base	review	0x6667c0	lea ecx, [eax + edx*8]
 0x00666b0e	3	D:slot-0x38 base	review	0x666af0	lea eax, [edx + eax*8]
 0x00666b1e	3	D:slot-0x38 base	review	0x666af0	lea edi, [eax + edx*8]
-0x0066d22c	4	K:base+0x38	review	0x66d100	lea edx, [esp + 0x38]
 0x0066d908	4	A:slot+0x0	review	0x66d900	mov edx, dword ptr [ecx + eax*8 + 0x38]
 0x0066d90c	4	A:slot+0x0	review	0x66d900	lea ecx, [ecx + eax*8 + 0x38]
 0x0066da45	4	A:slot+0x0	review	0x66da30	mov edx, dword ptr [esi + eax*8 + 0x38]
@@ -208,15 +196,10 @@ va	size	kind	tag	function	instruction
 0x00683cdf	4	A:slot+0x0	review	0x683cb0	lea ecx, [ecx + esi*8 + 0x38]
 0x00684471	4	A:slot+0x0	review	0x684370	mov ecx, dword ptr [ebx + eax*8 + 0x38]
 0x00684475	4	A:slot+0x4	review	0x684370	mov edx, dword ptr [ebx + eax*8 + 0x3c]
-0x00685bc6	4	K:base+0x38	review	0x685b20	lea edx, [esp + 0x38]
 0x00688e6f	4	A:slot+0x0	review	0x688de0	mov ecx, dword ptr [edi + eax*8 + 0x38]
 0x00688e73	4	A:slot+0x4	review	0x688de0	mov edx, dword ptr [edi + eax*8 + 0x3c]
-0x0068bb8a	4	K:base+0x38	review	0x68bab0	lea ecx, [esp + 0x38]
-0x0068bb95	4	K:base+0x38	review	0x68bab0	lea ecx, [esp + 0x38]
 0x0068bc70	4	A:slot+0x0	review	0x68bab0	lea eax, [edi + ecx*8 + 0x38]
 0x0068bc97	4	A:slot+0x0	review	0x68bab0	mov ecx, dword ptr [edi + edx*8 + 0x38]
-0x0068bd8f	4	K:base+0x38	review	0x68bab0	lea edx, [esp + 0x38]
-0x0068bd9a	4	K:base+0x38	review	0x68bab0	lea ecx, [esp + 0x38]
 0x0068bfc4	4	A:slot+0x0	review	0x68be10	mov ecx, dword ptr [edi + edx*8 + 0x38]
 0x0068bfea	4	A:slot+0x0	review	0x68be10	lea ecx, [edi + edx*8 + 0x38]
 0x0068c8f4	4	A:slot+0x0	review	0x68c8d0	mov edx, dword ptr [esi + eax*8 + 0x38]
@@ -263,7 +246,6 @@ va	size	kind	tag	function	instruction
 0x006bafc0	3	D:slot-0x38 base	review	0x6bae70	lea ebx, [ecx + eax*8]
 0x006bb1fe	3	D:slot-0x38 base	review	0x6bae70	lea ebx, [ecx + eax*8]
 0x006da234	3	D:slot-0x38 base	review	0x6da1a0	lea eax, [ecx + edx*8]
-0x00711c8b	4	K:base+0x38	review	0x711250	lea edx, [esp + 0x38]
 0x0072a8e5	3	D:slot-0x38 base	review	0x72a8c0	lea eax, [eax + edx*8]
 0x00731b7e	3	D:slot-0x38 base	review	0x731b60	lea ebx, [ecx + eax*8]
 0x00731d75	3	D:slot-0x38 base	review	0x731ba0	lea edx, [ecx + eax*8]

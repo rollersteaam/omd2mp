@@ -404,34 +404,6 @@
    ]
   },
   {
-   "id": "slots.K_493617",
-   "group": "slots",
-   "kind": "tramp",
-   "va": 4797975,
-   "orig": "8d4c243851",
-   "steal": 5,
-   "cave": "8d8c246860030051e900000000",
-   "fixups": [
-    [
-     9,
-     4797980
-    ]
-   ],
-   "why": "K:base+0x38: lea ecx, [esp + 0x38] (+0x36030)",
-   "verbatim": [
-    [
-     4797979,
-     7,
-     1
-    ]
-   ],
-   "cave_imms": [],
-   "asm": [
-    "0x493617: lea ecx, [esp + 0x38]",
-    "0x49361b: push ecx"
-   ]
-  },
-  {
    "id": "slots.B_4979bf",
    "group": "slots",
    "kind": "tramp",
@@ -619,34 +591,6 @@
    "asm": [
     "0x4b1a6f: lea esi, [ebx + 0x38]",
     "0x4b1a72: mov edi, 1"
-   ]
-  },
-  {
-   "id": "slots.K_4b1acd",
-   "group": "slots",
-   "kind": "tramp",
-   "va": 4922061,
-   "orig": "8d44243864a300000000",
-   "steal": 10,
-   "cave": "8d84246860030064a300000000e900000000",
-   "fixups": [
-    [
-     14,
-     4922071
-    ]
-   ],
-   "why": "K:base+0x38: lea eax, [esp + 0x38] (+0x36030)",
-   "verbatim": [
-    [
-     4922065,
-     7,
-     6
-    ]
-   ],
-   "cave_imms": [],
-   "asm": [
-    "0x4b1acd: lea eax, [esp + 0x38]",
-    "0x4b1ad1: mov dword ptr fs:[0], eax"
    ]
   },
   {
@@ -2121,34 +2065,6 @@
    ]
   },
   {
-   "id": "slots.K_502227",
-   "group": "slots",
-   "kind": "tramp",
-   "va": 5251623,
-   "orig": "8d44243883c418",
-   "steal": 7,
-   "cave": "8d84246860030083c418e900000000",
-   "fixups": [
-    [
-     11,
-     5251630
-    ]
-   ],
-   "why": "K:base+0x38: lea eax, [esp + 0x38] (+0x36030)",
-   "verbatim": [
-    [
-     5251627,
-     7,
-     3
-    ]
-   ],
-   "cave_imms": [],
-   "asm": [
-    "0x502227: lea eax, [esp + 0x38]",
-    "0x50222b: add esp, 0x18"
-   ]
-  },
-  {
    "id": "slots.C_502587",
    "group": "slots",
    "kind": "tramp",
@@ -2256,32 +2172,6 @@
    "asm": [
     "0x502719: cmp dword ptr [edx + esi*8], 0",
     "0x50271d: je 0x502739"
-   ]
-  },
-  {
-   "id": "slots.K_503c48",
-   "group": "slots",
-   "kind": "tramp",
-   "va": 5258312,
-   "orig": "8d742438e84f07f4ff",
-   "steal": 9,
-   "cave": "8db42468600300e800000000e900000000",
-   "fixups": [
-    [
-     8,
-     4473760
-    ],
-    [
-     13,
-     5258321
-    ]
-   ],
-   "why": "K:base+0x38: lea esi, [esp + 0x38] (+0x36030)",
-   "verbatim": [],
-   "cave_imms": [],
-   "asm": [
-    "0x503c48: lea esi, [esp + 0x38]",
-    "0x503c4c: call 0x4443a0"
    ]
   },
   {
