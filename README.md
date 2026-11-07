@@ -8,7 +8,7 @@ rebalance for player count, and document the game so future mods can add charact
 |---|---|
 | Reverse-engineering toolkit (`tools/re/`) | done |
 | Network/lobby limits mapped | done (see findings) |
-| Player-slot array inventory (`research/slot_sites.tsv`) | done: 95 session sites |
+| Player-slot array inventory (`research/slot_sites.tsv`) | done: 96 session sites |
 | Patch set (`patches/patchset.json`, 108 patches) | generated, unit-tested, **not run in-game** |
 | Loader DLL (`loader/`, builds `version.dll`) | built, unit-tested, **not run in-game** |
 | Wave rebalance data mod (`mods/rebalance/`) | generator done, **not playtested** |
