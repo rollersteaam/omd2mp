@@ -1,0 +1,2563 @@
+{
+ "meta": {
+  "exe_timestamp": 1373475241,
+  "slot_old_base": 56,
+  "slot_new_base": 221288,
+  "slot_size": 24,
+  "delta": 221232,
+  "unpatched_slot_sites": []
+ },
+ "patches": [
+  {
+   "id": "lobby.steam_member_limit",
+   "group": "lobby",
+   "kind": "imm",
+   "va": 4550733,
+   "orig": "c7474002000000",
+   "off": 3,
+   "size": 4,
+   "expr": "N",
+   "why": "Lobby2 Console_CreateRoom msg: maxMembers=2 -> ISteamMatchmaking::CreateLobby(type, maxMembers)"
+  },
+  {
+   "id": "lobby.host_startup_maxconn",
+   "group": "lobby",
+   "kind": "imm",
+   "va": 4550430,
+   "orig": "6a01",
+   "off": 1,
+   "size": 1,
+   "expr": "N-1",
+   "why": "host RakPeer::Startup(maxConnections=1,...)"
+  },
+  {
+   "id": "lobby.host_max_incoming",
+   "group": "lobby",
+   "kind": "imm",
+   "va": 4550445,
+   "orig": "6a01",
+   "off": 1,
+   "size": 1,
+   "expr": "N-1",
+   "why": "host RakPeer::SetMaximumIncomingConnections(1)"
+  },
+  {
+   "id": "mesh.client_startup_maxconn",
+   "group": "mesh",
+   "kind": "imm",
+   "va": 4550850,
+   "orig": "6a01",
+   "off": 1,
+   "size": 1,
+   "expr": "N-1",
+   "why": "client RakPeer::Startup(maxConnections=1,...) - needed only for client<->client links"
+  },
+  {
+   "id": "mesh.fcm2_connect_on_new_remote",
+   "group": "mesh",
+   "kind": "tramp",
+   "va": 4553053,
+   "orig": "53e87de51a00",
+   "steal": 6,
+   "cave": "6a01e800000000e900000000",
+   "fixups": [
+    [
+     3,
+     6315744
+    ],
+    [
+     8,
+     4553059
+    ]
+   ],
+   "why": "FullyConnectedMesh2::SetConnectOnNewRemoteConnection(false,\"\") -> true",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x45795d: push ebx",
+    "0x45795e: call 0x605ee0"
+   ]
+  },
+  {
+   "id": "slots.B_456bf4",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4549620,
+   "orig": "833cc6007409",
+   "steal": 6,
+   "cave": "83bcc630600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4549635
+    ],
+    [
+     15,
+     4549626
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [esi + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x456bf4: cmp dword ptr [esi + eax*8], 0",
+    "0x456bf8: je 0x456c03"
+   ]
+  },
+  {
+   "id": "slots.K_4571d4",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4551121,
+   "orig": "8d6f1883c638",
+   "steal": 6,
+   "cave": "8d6f1881c668600300e900000000",
+   "fixups": [
+    [
+     10,
+     4551127
+    ]
+   ],
+   "why": "K:base+0x38: add esi, 0x38 (+0x36030)",
+   "verbatim": [
+    [
+     4551121,
+     0,
+     3
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4571d1: lea ebp, [edi + 0x18]",
+    "0x4571d4: add esi, 0x38"
+   ]
+  },
+  {
+   "id": "slots.L_4571e7",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4551143,
+   "orig": "83fb02",
+   "off": 2,
+   "size": 1,
+   "expr": "N",
+   "why": "slot loop bound: cmp ebx, 2"
+  },
+  {
+   "id": "slots.A_457206",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4551174,
+   "orig": "8d4cd038e821b81900",
+   "steal": 9,
+   "cave": "8d8cd068600300e800000000e900000000",
+   "fixups": [
+    [
+     8,
+     6236720
+    ],
+    [
+     13,
+     4551183
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [eax + edx*8 + 0x38] (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x457206: lea ecx, [eax + edx*8 + 0x38]",
+    "0x45720a: call 0x5f2a30"
+   ]
+  },
+  {
+   "id": "slots.B_457a47",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4553287,
+   "orig": "833cc1007415",
+   "steal": 6,
+   "cave": "83bcc130600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4553314
+    ],
+    [
+     15,
+     4553293
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ecx + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x457a47: cmp dword ptr [ecx + eax*8], 0",
+    "0x457a4b: je 0x457a62"
+   ]
+  },
+  {
+   "id": "slots.C_457c43",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4553795,
+   "orig": "833cc8007410",
+   "steal": 6,
+   "cave": "83bcc830600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4553817
+    ],
+    [
+     15,
+     4553801
+    ]
+   ],
+   "why": "C:slot+0x10: cmp dword ptr [eax + ecx*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x457c43: cmp dword ptr [eax + ecx*8], 0",
+    "0x457c47: je 0x457c59"
+   ]
+  },
+  {
+   "id": "slots.B_457cb3",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4553907,
+   "orig": "833cc1007409",
+   "steal": 6,
+   "cave": "83bcc130600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4553922
+    ],
+    [
+     15,
+     4553913
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ecx + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x457cb3: cmp dword ptr [ecx + eax*8], 0",
+    "0x457cb7: je 0x457cc2"
+   ]
+  },
+  {
+   "id": "slots.C_47b50e",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4699406,
+   "orig": "833ce900740b",
+   "steal": 6,
+   "cave": "83bce930600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4699423
+    ],
+    [
+     15,
+     4699412
+    ]
+   ],
+   "why": "C:slot+0x10: cmp dword ptr [ecx + ebp*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x47b50e: cmp dword ptr [ecx + ebp*8], 0",
+    "0x47b512: je 0x47b51f"
+   ]
+  },
+  {
+   "id": "slots.L_47d31b",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4707099,
+   "orig": "83f801",
+   "off": 2,
+   "size": 1,
+   "expr": "N-1",
+   "why": "slot index bound: cmp eax, 1; ja invalid"
+  },
+  {
+   "id": "slots.A_47d328",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4707112,
+   "orig": "8d4cc13851",
+   "steal": 5,
+   "cave": "8d8cc16860030051e900000000",
+   "fixups": [
+    [
+     9,
+     4707117
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [ecx + eax*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4707116,
+     7,
+     1
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x47d328: lea ecx, [ecx + eax*8 + 0x38]",
+    "0x47d32c: push ecx"
+   ]
+  },
+  {
+   "id": "slots.K_492761",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4794207,
+   "orig": "33f683c738",
+   "steal": 5,
+   "cave": "33f681c768600300e900000000",
+   "fixups": [
+    [
+     9,
+     4794212
+    ]
+   ],
+   "why": "K:base+0x38: add edi, 0x38 (+0x36030)",
+   "verbatim": [
+    [
+     4794207,
+     0,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x49275f: xor esi, esi",
+    "0x492761: add edi, 0x38"
+   ]
+  },
+  {
+   "id": "slots.L_492781",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4794241,
+   "orig": "83fe02",
+   "off": 2,
+   "size": 1,
+   "expr": "N",
+   "why": "slot loop bound: cmp esi, 2"
+  },
+  {
+   "id": "slots.C_4927d6",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4794326,
+   "orig": "833cd7007443",
+   "steal": 6,
+   "cave": "83bcd730600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4794399
+    ],
+    [
+     15,
+     4794332
+    ]
+   ],
+   "why": "C:slot+0x10: cmp dword ptr [edi + edx*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4927d6: cmp dword ptr [edi + edx*8], 0",
+    "0x4927da: je 0x49281f"
+   ]
+  },
+  {
+   "id": "slots.B_493098",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4796568,
+   "orig": "833cc2007412",
+   "steal": 6,
+   "cave": "83bcc230600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4796592
+    ],
+    [
+     15,
+     4796574
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [edx + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x493098: cmp dword ptr [edx + eax*8], 0",
+    "0x49309c: je 0x4930b0"
+   ]
+  },
+  {
+   "id": "slots.K_493617",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4797975,
+   "orig": "8d4c243851",
+   "steal": 5,
+   "cave": "8d8c246860030051e900000000",
+   "fixups": [
+    [
+     9,
+     4797980
+    ]
+   ],
+   "why": "K:base+0x38: lea ecx, [esp + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4797979,
+     7,
+     1
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x493617: lea ecx, [esp + 0x38]",
+    "0x49361b: push ecx"
+   ]
+  },
+  {
+   "id": "slots.B_4979bf",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4815295,
+   "orig": "833cc1007407",
+   "steal": 6,
+   "cave": "83bcc130600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4815308
+    ],
+    [
+     15,
+     4815301
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ecx + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4979bf: cmp dword ptr [ecx + eax*8], 0",
+    "0x4979c3: je 0x4979cc"
+   ]
+  },
+  {
+   "id": "slots.A_4b13f4",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4920308,
+   "orig": "8d4cc138e833161400",
+   "steal": 9,
+   "cave": "8d8cc168600300e800000000e900000000",
+   "fixups": [
+    [
+     8,
+     6236720
+    ],
+    [
+     13,
+     4920317
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [ecx + eax*8 + 0x38] (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b13f4: lea ecx, [ecx + eax*8 + 0x38]",
+    "0x4b13f8: call 0x5f2a30"
+   ]
+  },
+  {
+   "id": "slots.C_4b1405",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4920325,
+   "orig": "833ccf050f94c0",
+   "steal": 7,
+   "cave": "83bccf30600300050f94c0e900000000",
+   "fixups": [
+    [
+     12,
+     4920332
+    ]
+   ],
+   "why": "C:slot+0x10: cmp dword ptr [edi + ecx*8], 5 (+0x36030)",
+   "verbatim": [
+    [
+     4920329,
+     8,
+     3
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1405: cmp dword ptr [edi + ecx*8], 5",
+    "0x4b1409: sete al"
+   ]
+  },
+  {
+   "id": "slots.B_4b18f2",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4921586,
+   "orig": "8b04c7893d08d1b900",
+   "steal": 9,
+   "cave": "8b84c730600300893d08d1b900e900000000",
+   "fixups": [
+    [
+     14,
+     4921595
+    ]
+   ],
+   "why": "B:slot+0x10: mov eax, dword ptr [edi + eax*8] (+0x36030)",
+   "verbatim": [
+    [
+     4921589,
+     7,
+     6
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b18f2: mov eax, dword ptr [edi + eax*8]",
+    "0x4b18f5: mov dword ptr [0xb9d108], edi"
+   ]
+  },
+  {
+   "id": "slots.A_4b191e",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4921630,
+   "orig": "8d4ccf388911",
+   "steal": 6,
+   "cave": "8d8ccf686003008911e900000000",
+   "fixups": [
+    [
+     10,
+     4921636
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [edi + ecx*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4921634,
+     7,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b191e: lea ecx, [edi + ecx*8 + 0x38]",
+    "0x4b1922: mov dword ptr [ecx], edx"
+   ]
+  },
+  {
+   "id": "slots.B_4b1a14",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4921876,
+   "orig": "833cc200740c",
+   "steal": 6,
+   "cave": "83bcc230600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4921894
+    ],
+    [
+     15,
+     4921882
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [edx + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1a14: cmp dword ptr [edx + eax*8], 0",
+    "0x4b1a18: je 0x4b1a26"
+   ]
+  },
+  {
+   "id": "slots.K_4b1a6f",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4921967,
+   "orig": "8d7338bf01000000",
+   "steal": 8,
+   "cave": "8db368600300bf01000000e900000000",
+   "fixups": [
+    [
+     12,
+     4921975
+    ]
+   ],
+   "why": "K:base+0x38: lea esi, [ebx + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4921970,
+     6,
+     5
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1a6f: lea esi, [ebx + 0x38]",
+    "0x4b1a72: mov edi, 1"
+   ]
+  },
+  {
+   "id": "slots.K_4b1acd",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4922061,
+   "orig": "8d44243864a300000000",
+   "steal": 10,
+   "cave": "8d84246860030064a300000000e900000000",
+   "fixups": [
+    [
+     14,
+     4922071
+    ]
+   ],
+   "why": "K:base+0x38: lea eax, [esp + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4922065,
+     7,
+     6
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1acd: lea eax, [esp + 0x38]",
+    "0x4b1ad1: mov dword ptr fs:[0], eax"
+   ]
+  },
+  {
+   "id": "slots.K_4b1ae9",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4922089,
+   "orig": "8d7338bf01000000",
+   "steal": 8,
+   "cave": "8db368600300bf01000000e900000000",
+   "fixups": [
+    [
+     12,
+     4922097
+    ]
+   ],
+   "why": "K:base+0x38: lea esi, [ebx + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4922092,
+     6,
+     5
+    ]
+   ],
+   "cave_imms": [
+    {
+     "id": "slots.ctor_loop_count",
+     "cave_off": 7,
+     "size": 4,
+     "expr": "N-1",
+     "why": "Session ctor: for (i=1; i>=0; --i) RakNetGUID() over slots"
+    }
+   ],
+   "asm": [
+    "0x4b1ae9: lea esi, [ebx + 0x38]",
+    "0x4b1aec: mov edi, 1"
+   ]
+  },
+  {
+   "id": "slots.B_4b1b3d",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4922173,
+   "orig": "833cc300752e",
+   "steal": 6,
+   "cave": "83bcc330600300000f8500000000e900000000",
+   "fixups": [
+    [
+     10,
+     4922225
+    ],
+    [
+     15,
+     4922179
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ebx + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1b3d: cmp dword ptr [ebx + eax*8], 0",
+    "0x4b1b41: jne 0x4b1b71"
+   ]
+  },
+  {
+   "id": "slots.A_4b1b5d",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4922205,
+   "orig": "8d4ccb388911",
+   "steal": 6,
+   "cave": "8d8ccb686003008911e900000000",
+   "fixups": [
+    [
+     10,
+     4922211
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [ebx + ecx*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4922209,
+     7,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1b5d: lea ecx, [ebx + ecx*8 + 0x38]",
+    "0x4b1b61: mov dword ptr [ecx], edx"
+   ]
+  },
+  {
+   "id": "slots.A_4b1c65",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4922469,
+   "orig": "8d4ccf388911",
+   "steal": 6,
+   "cave": "8d8ccf686003008911e900000000",
+   "fixups": [
+    [
+     10,
+     4922475
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [edi + ecx*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4922473,
+     7,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1c65: lea ecx, [edi + ecx*8 + 0x38]",
+    "0x4b1c69: mov dword ptr [ecx], edx"
+   ]
+  },
+  {
+   "id": "slots.C_4b1c98",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4922520,
+   "orig": "8b14cf89442418",
+   "steal": 7,
+   "cave": "8b94cf3060030089442418e900000000",
+   "fixups": [
+    [
+     12,
+     4922527
+    ]
+   ],
+   "why": "C:slot+0x10: mov edx, dword ptr [edi + ecx*8] (+0x36030)",
+   "verbatim": [
+    [
+     4922523,
+     7,
+     4
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1c98: mov edx, dword ptr [edi + ecx*8]",
+    "0x4b1c9b: mov dword ptr [esp + 0x18], eax"
+   ]
+  },
+  {
+   "id": "slots.A_4b1eb7",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4923063,
+   "orig": "8d4ccf388911",
+   "steal": 6,
+   "cave": "8d8ccf686003008911e900000000",
+   "fixups": [
+    [
+     10,
+     4923069
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [edi + ecx*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4923067,
+     7,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1eb7: lea ecx, [edi + ecx*8 + 0x38]",
+    "0x4b1ebb: mov dword ptr [ecx], edx"
+   ]
+  },
+  {
+   "id": "slots.C_4b1efc",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4923132,
+   "orig": "8b2ccf33c0",
+   "steal": 5,
+   "cave": "8baccf3060030033c0e900000000",
+   "fixups": [
+    [
+     10,
+     4923137
+    ]
+   ],
+   "why": "C:slot+0x10: mov ebp, dword ptr [edi + ecx*8] (+0x36030)",
+   "verbatim": [
+    [
+     4923135,
+     7,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1efc: mov ebp, dword ptr [edi + ecx*8]",
+    "0x4b1eff: xor eax, eax"
+   ]
+  },
+  {
+   "id": "slots.L_4b1f9c",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4923292,
+   "orig": "83ff02",
+   "off": 2,
+   "size": 1,
+   "expr": "N",
+   "why": "slot loop bound: cmp edi, 2"
+  },
+  {
+   "id": "slots.L_4b21f0",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4923888,
+   "orig": "83fe02",
+   "off": 2,
+   "size": 1,
+   "expr": "N",
+   "why": "slot loop bound: cmp esi, 2"
+  },
+  {
+   "id": "slots.K_4b2221",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4923935,
+   "orig": "33f68d7838",
+   "steal": 5,
+   "cave": "33f68db868600300e900000000",
+   "fixups": [
+    [
+     9,
+     4923940
+    ]
+   ],
+   "why": "K:base+0x38: lea edi, [eax + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4923935,
+     0,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b221f: xor esi, esi",
+    "0x4b2221: lea edi, [eax + 0x38]"
+   ]
+  },
+  {
+   "id": "slots.L_4b223d",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4923965,
+   "orig": "83fe02",
+   "off": 2,
+   "size": 1,
+   "expr": "N",
+   "why": "slot loop bound: cmp esi, 2"
+  },
+  {
+   "id": "slots.K_4b226b",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924011,
+   "orig": "83c7388bff",
+   "steal": 5,
+   "cave": "81c7686003008bffe900000000",
+   "fixups": [
+    [
+     9,
+     4924016
+    ]
+   ],
+   "why": "K:base+0x38: add edi, 0x38 (+0x36030)",
+   "verbatim": [
+    [
+     4924014,
+     6,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b226b: add edi, 0x38",
+    "0x4b226e: mov edi, edi"
+   ]
+  },
+  {
+   "id": "slots.L_4b2280",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4924032,
+   "orig": "83fe02",
+   "off": 2,
+   "size": 1,
+   "expr": "N",
+   "why": "slot loop bound: cmp esi, 2"
+  },
+  {
+   "id": "slots.L_4b22a0",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4924064,
+   "orig": "83f901",
+   "off": 2,
+   "size": 1,
+   "expr": "N-1",
+   "why": "slot index bound: cmp ecx, 1; ja invalid"
+  },
+  {
+   "id": "slots.A_4b22ac",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924076,
+   "orig": "f30f7e44ca38",
+   "steal": 6,
+   "cave": "f30f7e84ca68600300e900000000",
+   "fixups": [
+    [
+     10,
+     4924082
+    ]
+   ],
+   "why": "A:slot+0x0: movq xmm0, qword ptr [edx + ecx*8 + 0x38] (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b22ac: movq xmm0, qword ptr [edx + ecx*8 + 0x38]"
+   ]
+  },
+  {
+   "id": "slots.A_4b22b2",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924082,
+   "orig": "8d4cca38660fd600",
+   "steal": 8,
+   "cave": "8d8cca68600300660fd600e900000000",
+   "fixups": [
+    [
+     12,
+     4924090
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [edx + ecx*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4924086,
+     7,
+     4
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b22b2: lea ecx, [edx + ecx*8 + 0x38]",
+    "0x4b22b6: movq qword ptr [eax], xmm0"
+   ]
+  },
+  {
+   "id": "slots.L_4b22f3",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4924147,
+   "orig": "83f901",
+   "off": 2,
+   "size": 1,
+   "expr": "N-1",
+   "why": "slot index bound: cmp ecx, 1; ja invalid"
+  },
+  {
+   "id": "slots.A_4b22fb",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924155,
+   "orig": "f30f7e44ca38",
+   "steal": 6,
+   "cave": "f30f7e84ca68600300e900000000",
+   "fixups": [
+    [
+     10,
+     4924161
+    ]
+   ],
+   "why": "A:slot+0x0: movq xmm0, qword ptr [edx + ecx*8 + 0x38] (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b22fb: movq xmm0, qword ptr [edx + ecx*8 + 0x38]"
+   ]
+  },
+  {
+   "id": "slots.A_4b2301",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924161,
+   "orig": "8d4cca38660fd600",
+   "steal": 8,
+   "cave": "8d8cca68600300660fd600e900000000",
+   "fixups": [
+    [
+     12,
+     4924169
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [edx + ecx*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4924165,
+     7,
+     4
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2301: lea ecx, [edx + ecx*8 + 0x38]",
+    "0x4b2305: movq qword ptr [eax], xmm0"
+   ]
+  },
+  {
+   "id": "slots.L_4b238e",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4924302,
+   "orig": "83f801",
+   "off": 2,
+   "size": 1,
+   "expr": "N-1",
+   "why": "slot index bound: cmp eax, 1; ja invalid"
+  },
+  {
+   "id": "slots.C_4b2397",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924311,
+   "orig": "833cc705750a",
+   "steal": 6,
+   "cave": "83bcc730600300050f8500000000e900000000",
+   "fixups": [
+    [
+     10,
+     4924327
+    ],
+    [
+     15,
+     4924317
+    ]
+   ],
+   "why": "C:slot+0x10: cmp dword ptr [edi + eax*8], 5 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2397: cmp dword ptr [edi + eax*8], 5",
+    "0x4b239b: jne 0x4b23a7"
+   ]
+  },
+  {
+   "id": "slots.B_4b23c8",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924360,
+   "orig": "833cc2007413",
+   "steal": 6,
+   "cave": "83bcc230600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4924385
+    ],
+    [
+     15,
+     4924366
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [edx + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b23c8: cmp dword ptr [edx + eax*8], 0",
+    "0x4b23cc: je 0x4b23e1"
+   ]
+  },
+  {
+   "id": "slots.L_4b24bc",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4924604,
+   "orig": "83f801",
+   "off": 2,
+   "size": 1,
+   "expr": "N-1",
+   "why": "slot index bound: cmp eax, 1; ja invalid"
+  },
+  {
+   "id": "slots.A_4b24c4",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924612,
+   "orig": "f30f7e44c338",
+   "steal": 6,
+   "cave": "f30f7e84c368600300e900000000",
+   "fixups": [
+    [
+     10,
+     4924618
+    ]
+   ],
+   "why": "A:slot+0x0: movq xmm0, qword ptr [ebx + eax*8 + 0x38] (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b24c4: movq xmm0, qword ptr [ebx + eax*8 + 0x38]"
+   ]
+  },
+  {
+   "id": "slots.A_4b24ca",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924618,
+   "orig": "8d44c338660fd6442410",
+   "steal": 10,
+   "cave": "8d84c368600300660fd6442410e900000000",
+   "fixups": [
+    [
+     14,
+     4924628
+    ]
+   ],
+   "why": "A:slot+0x0: lea eax, [ebx + eax*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4924622,
+     7,
+     6
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b24ca: lea eax, [ebx + eax*8 + 0x38]",
+    "0x4b24ce: movq qword ptr [esp + 0x10], xmm0"
+   ]
+  },
+  {
+   "id": "slots.C_4b2521",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924705,
+   "orig": "8d04cb8b08",
+   "steal": 5,
+   "cave": "8d84cb306003008b08e900000000",
+   "fixups": [
+    [
+     10,
+     4924710
+    ]
+   ],
+   "why": "C:slot+0x10: lea eax, [ebx + ecx*8] (+0x36030)",
+   "verbatim": [
+    [
+     4924708,
+     7,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2521: lea eax, [ebx + ecx*8]",
+    "0x4b2524: mov ecx, dword ptr [eax]"
+   ]
+  },
+  {
+   "id": "slots.D_4b2558",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4924760,
+   "orig": "8d04d3894838",
+   "steal": 6,
+   "cave": "8d84d330600300894838e900000000",
+   "fixups": [
+    [
+     11,
+     4924766
+    ]
+   ],
+   "why": "D:slot-0x38 base: lea eax, [ebx + edx*8] (+0x36030)",
+   "verbatim": [
+    [
+     4924763,
+     7,
+     3
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2558: lea eax, [ebx + edx*8]",
+    "0x4b255b: mov dword ptr [eax + 0x38], ecx"
+   ]
+  },
+  {
+   "id": "slots.L_4b25fb",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4924923,
+   "orig": "83ff02",
+   "off": 2,
+   "size": 1,
+   "expr": "N",
+   "why": "slot loop bound: cmp edi, 2"
+  },
+  {
+   "id": "slots.D_4b2685",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4925061,
+   "orig": "8d2cc76860b08e00",
+   "steal": 8,
+   "cave": "8dacc7306003006860b08e00e900000000",
+   "fixups": [
+    [
+     13,
+     4925069
+    ]
+   ],
+   "why": "D:slot-0x38 base: lea ebp, [edi + eax*8] (+0x36030)",
+   "verbatim": [
+    [
+     4925064,
+     7,
+     5
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2685: lea ebp, [edi + eax*8]",
+    "0x4b2688: push 0x8eb060"
+   ]
+  },
+  {
+   "id": "slots.D_4b2705",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4925189,
+   "orig": "8d2cc76860b08e00",
+   "steal": 8,
+   "cave": "8dacc7306003006860b08e00e900000000",
+   "fixups": [
+    [
+     13,
+     4925197
+    ]
+   ],
+   "why": "D:slot-0x38 base: lea ebp, [edi + eax*8] (+0x36030)",
+   "verbatim": [
+    [
+     4925192,
+     7,
+     5
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2705: lea ebp, [edi + eax*8]",
+    "0x4b2708: push 0x8eb060"
+   ]
+  },
+  {
+   "id": "slots.A_4b27a1",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4925345,
+   "orig": "8d4cc638e886021400",
+   "steal": 9,
+   "cave": "8d8cc668600300e800000000e900000000",
+   "fixups": [
+    [
+     8,
+     6236720
+    ],
+    [
+     13,
+     4925354
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [esi + eax*8 + 0x38] (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b27a1: lea ecx, [esi + eax*8 + 0x38]",
+    "0x4b27a5: call 0x5f2a30"
+   ]
+  },
+  {
+   "id": "slots.A_4b27ca",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4925386,
+   "orig": "c644ce4e01",
+   "steal": 5,
+   "cave": "c684ce7e60030001e900000000",
+   "fixups": [
+    [
+     9,
+     4925391
+    ]
+   ],
+   "why": "A:slot+0x16: mov byte ptr [esi + ecx*8 + 0x4e], 1 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b27ca: mov byte ptr [esi + ecx*8 + 0x4e], 1"
+   ]
+  },
+  {
+   "id": "slots.A_4b28dd",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4925661,
+   "orig": "807cc74e00",
+   "steal": 5,
+   "cave": "80bcc77e60030000e900000000",
+   "fixups": [
+    [
+     9,
+     4925666
+    ]
+   ],
+   "why": "A:slot+0x16: cmp byte ptr [edi + eax*8 + 0x4e], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b28dd: cmp byte ptr [edi + eax*8 + 0x4e], 0"
+   ]
+  },
+  {
+   "id": "slots.A_4b28e2",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4925666,
+   "orig": "8d6cc74e7479",
+   "steal": 6,
+   "cave": "8dacc77e6003000f8400000000e900000000",
+   "fixups": [
+    [
+     9,
+     4925793
+    ],
+    [
+     14,
+     4925672
+    ]
+   ],
+   "why": "A:slot+0x16: lea ebp, [edi + eax*8 + 0x4e] (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b28e2: lea ebp, [edi + eax*8 + 0x4e]",
+    "0x4b28e6: je 0x4b2961"
+   ]
+  },
+  {
+   "id": "slots.A_4b2993",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4925843,
+   "orig": "8d4cc738e894001400",
+   "steal": 9,
+   "cave": "8d8cc768600300e800000000e900000000",
+   "fixups": [
+    [
+     8,
+     6236720
+    ],
+    [
+     13,
+     4925852
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [edi + eax*8 + 0x38] (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2993: lea ecx, [edi + eax*8 + 0x38]",
+    "0x4b2997: call 0x5f2a30"
+   ]
+  },
+  {
+   "id": "slots.B_4b2abd",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4926141,
+   "orig": "833cc3000f84b0010000",
+   "steal": 10,
+   "cave": "83bcc330600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4926583
+    ],
+    [
+     15,
+     4926151
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ebx + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2abd: cmp dword ptr [ebx + eax*8], 0",
+    "0x4b2ac1: je 0x4b2c77"
+   ]
+  },
+  {
+   "id": "slots.B_4b2b4b",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4926283,
+   "orig": "393cc30f8423010000",
+   "steal": 9,
+   "cave": "39bcc3306003000f8400000000e900000000",
+   "fixups": [
+    [
+     9,
+     4926583
+    ],
+    [
+     14,
+     4926292
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ebx + eax*8], edi (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2b4b: cmp dword ptr [ebx + eax*8], edi",
+    "0x4b2b4e: je 0x4b2c77"
+   ]
+  },
+  {
+   "id": "slots.A_4b2c38",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4926520,
+   "orig": "8d44c3388908",
+   "steal": 6,
+   "cave": "8d84c3686003008908e900000000",
+   "fixups": [
+    [
+     10,
+     4926526
+    ]
+   ],
+   "why": "A:slot+0x0: lea eax, [ebx + eax*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4926524,
+     7,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2c38: lea eax, [ebx + eax*8 + 0x38]",
+    "0x4b2c3c: mov dword ptr [eax], ecx"
+   ]
+  },
+  {
+   "id": "slots.D_4b2d5a",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4926810,
+   "orig": "8d2cc86860b08e00",
+   "steal": 8,
+   "cave": "8dacc8306003006860b08e00e900000000",
+   "fixups": [
+    [
+     13,
+     4926818
+    ]
+   ],
+   "why": "D:slot-0x38 base: lea ebp, [eax + ecx*8] (+0x36030)",
+   "verbatim": [
+    [
+     4926813,
+     7,
+     5
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2d5a: lea ebp, [eax + ecx*8]",
+    "0x4b2d5d: push 0x8eb060"
+   ]
+  },
+  {
+   "id": "slots.D_4b2da1",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4926881,
+   "orig": "8d34c76860b08e00",
+   "steal": 8,
+   "cave": "8db4c7306003006860b08e00e900000000",
+   "fixups": [
+    [
+     13,
+     4926889
+    ]
+   ],
+   "why": "D:slot-0x38 base: lea esi, [edi + eax*8] (+0x36030)",
+   "verbatim": [
+    [
+     4926884,
+     7,
+     5
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2da1: lea esi, [edi + eax*8]",
+    "0x4b2da4: push 0x8eb060"
+   ]
+  },
+  {
+   "id": "slots.C_4b2e72",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4927090,
+   "orig": "8b1ccf33c0",
+   "steal": 5,
+   "cave": "8b9ccf3060030033c0e900000000",
+   "fixups": [
+    [
+     10,
+     4927095
+    ]
+   ],
+   "why": "C:slot+0x10: mov ebx, dword ptr [edi + ecx*8] (+0x36030)",
+   "verbatim": [
+    [
+     4927093,
+     7,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2e72: mov ebx, dword ptr [edi + ecx*8]",
+    "0x4b2e75: xor eax, eax"
+   ]
+  },
+  {
+   "id": "slots.B_4b369f",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4929183,
+   "orig": "8b04c1578bf9",
+   "steal": 6,
+   "cave": "8b84c130600300578bf9e900000000",
+   "fixups": [
+    [
+     11,
+     4929189
+    ]
+   ],
+   "why": "B:slot+0x10: mov eax, dword ptr [ecx + eax*8] (+0x36030)",
+   "verbatim": [
+    [
+     4929186,
+     7,
+     1
+    ],
+    [
+     4929187,
+     8,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b369f: mov eax, dword ptr [ecx + eax*8]",
+    "0x4b36a2: push edi",
+    "0x4b36a3: mov edi, ecx"
+   ]
+  },
+  {
+   "id": "slots.L_4b379b",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4929435,
+   "orig": "83fb02",
+   "off": 2,
+   "size": 1,
+   "expr": "N",
+   "why": "slot loop bound: cmp ebx, 2"
+  },
+  {
+   "id": "slots.C_4b3805",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4929541,
+   "orig": "8b14cf8d0ccf",
+   "steal": 6,
+   "cave": "8b94cf306003008d8ccf30600300e900000000",
+   "fixups": [
+    [
+     15,
+     4929547
+    ]
+   ],
+   "why": "C:slot+0x10: mov edx, dword ptr [edi + ecx*8] (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b3805: mov edx, dword ptr [edi + ecx*8]",
+    "0x4b3808: lea ecx, [edi + ecx*8]"
+   ]
+  },
+  {
+   "id": "slots.A_4b3840",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4929600,
+   "orig": "8d44d7388908",
+   "steal": 6,
+   "cave": "8d84d7686003008908e900000000",
+   "fixups": [
+    [
+     10,
+     4929606
+    ]
+   ],
+   "why": "A:slot+0x0: lea eax, [edi + edx*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4929604,
+     7,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b3840: lea eax, [edi + edx*8 + 0x38]",
+    "0x4b3844: mov dword ptr [eax], ecx"
+   ]
+  },
+  {
+   "id": "slots.A_4b3870",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4929648,
+   "orig": "8844d74f884768",
+   "steal": 7,
+   "cave": "8884d77f600300884768e900000000",
+   "fixups": [
+    [
+     11,
+     4929655
+    ]
+   ],
+   "why": "A:slot+0x17: mov byte ptr [edi + edx*8 + 0x4f], al (+0x36030)",
+   "verbatim": [
+    [
+     4929652,
+     7,
+     3
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b3870: mov byte ptr [edi + edx*8 + 0x4f], al",
+    "0x4b3874: mov byte ptr [edi + 0x68], al"
+   ]
+  },
+  {
+   "id": "slots.K_4b388e",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4929676,
+   "orig": "33f68d7b38",
+   "steal": 5,
+   "cave": "33f68dbb68600300e900000000",
+   "fixups": [
+    [
+     9,
+     4929681
+    ]
+   ],
+   "why": "K:base+0x38: lea edi, [ebx + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4929676,
+     0,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b388c: xor esi, esi",
+    "0x4b388e: lea edi, [ebx + 0x38]"
+   ]
+  },
+  {
+   "id": "slots.L_4b38a5",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4929701,
+   "orig": "83fe02",
+   "off": 2,
+   "size": 1,
+   "expr": "N",
+   "why": "slot loop bound: cmp esi, 2"
+  },
+  {
+   "id": "slots.A_4b38c0",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4929728,
+   "orig": "8d44c3385b",
+   "steal": 5,
+   "cave": "8d84c3686003005be900000000",
+   "fixups": [
+    [
+     9,
+     4929733
+    ]
+   ],
+   "why": "A:slot+0x0: lea eax, [ebx + eax*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4929732,
+     7,
+     1
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b38c0: lea eax, [ebx + eax*8 + 0x38]",
+    "0x4b38c4: pop ebx"
+   ]
+  },
+  {
+   "id": "slots.L_4b3a8c",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4930188,
+   "orig": "83fb02",
+   "off": 2,
+   "size": 1,
+   "expr": "N",
+   "why": "slot loop bound: cmp ebx, 2"
+  },
+  {
+   "id": "slots.L_4b3ad8",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4930264,
+   "orig": "83f801",
+   "off": 2,
+   "size": 1,
+   "expr": "N-1",
+   "why": "slot index bound: cmp eax, 1; ja invalid"
+  },
+  {
+   "id": "slots.A_4b3ae5",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4930277,
+   "orig": "8d4cc53851",
+   "steal": 5,
+   "cave": "8d8cc56860030051e900000000",
+   "fixups": [
+    [
+     9,
+     4930282
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [ebp + eax*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4930281,
+     7,
+     1
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b3ae5: lea ecx, [ebp + eax*8 + 0x38]",
+    "0x4b3ae9: push ecx"
+   ]
+  },
+  {
+   "id": "slots.L_4b3b8f",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4930447,
+   "orig": "83fe01",
+   "off": 2,
+   "size": 1,
+   "expr": "N-1",
+   "why": "slot index bound: cmp esi, 1; ja invalid"
+  },
+  {
+   "id": "slots.A_4b3b9c",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4930460,
+   "orig": "8d44d73850",
+   "steal": 5,
+   "cave": "8d84d76860030050e900000000",
+   "fixups": [
+    [
+     9,
+     4930465
+    ]
+   ],
+   "why": "A:slot+0x0: lea eax, [edi + edx*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4930464,
+     7,
+     1
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b3b9c: lea eax, [edi + edx*8 + 0x38]",
+    "0x4b3ba0: push eax"
+   ]
+  },
+  {
+   "id": "slots.D_4b3d7b",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4930939,
+   "orig": "8d2cc76860b08e00",
+   "steal": 8,
+   "cave": "8dacc7306003006860b08e00e900000000",
+   "fixups": [
+    [
+     13,
+     4930947
+    ]
+   ],
+   "why": "D:slot-0x38 base: lea ebp, [edi + eax*8] (+0x36030)",
+   "verbatim": [
+    [
+     4930942,
+     7,
+     5
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b3d7b: lea ebp, [edi + eax*8]",
+    "0x4b3d7e: push 0x8eb060"
+   ]
+  },
+  {
+   "id": "slots.A_4b3dda",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4931034,
+   "orig": "8d4ccf388911",
+   "steal": 6,
+   "cave": "8d8ccf686003008911e900000000",
+   "fixups": [
+    [
+     10,
+     4931040
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [edi + ecx*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4931038,
+     7,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b3dda: lea ecx, [edi + ecx*8 + 0x38]",
+    "0x4b3dde: mov dword ptr [ecx], edx"
+   ]
+  },
+  {
+   "id": "slots.L_4ba94a",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4958538,
+   "orig": "83f801",
+   "off": 2,
+   "size": 1,
+   "expr": "N-1",
+   "why": "slot index bound: cmp eax, 1; ja invalid"
+  },
+  {
+   "id": "slots.A_4ba963",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4958563,
+   "orig": "8d7cd73885ed",
+   "steal": 6,
+   "cave": "8dbcd76860030085ede900000000",
+   "fixups": [
+    [
+     10,
+     4958569
+    ]
+   ],
+   "why": "A:slot+0x0: lea edi, [edi + edx*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     4958567,
+     7,
+     2
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4ba963: lea edi, [edi + edx*8 + 0x38]",
+    "0x4ba967: test ebp, ebp"
+   ]
+  },
+  {
+   "id": "slots.B_4bbc4f",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4963407,
+   "orig": "833cc7007412",
+   "steal": 6,
+   "cave": "83bcc730600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4963431
+    ],
+    [
+     15,
+     4963413
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [edi + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4bbc4f: cmp dword ptr [edi + eax*8], 0",
+    "0x4bbc53: je 0x4bbc67"
+   ]
+  },
+  {
+   "id": "slots.B_4bbd5d",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4963677,
+   "orig": "833cc2007410",
+   "steal": 6,
+   "cave": "83bcc230600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     4963699
+    ],
+    [
+     15,
+     4963683
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [edx + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4bbd5d: cmp dword ptr [edx + eax*8], 0",
+    "0x4bbd61: je 0x4bbd73"
+   ]
+  },
+  {
+   "id": "slots.C_5012a6",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5247654,
+   "orig": "833cf2005e",
+   "steal": 5,
+   "cave": "83bcf230600300005ee900000000",
+   "fixups": [
+    [
+     10,
+     5247659
+    ]
+   ],
+   "why": "C:slot+0x10: cmp dword ptr [edx + esi*8], 0 (+0x36030)",
+   "verbatim": [
+    [
+     5247658,
+     8,
+     1
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x5012a6: cmp dword ptr [edx + esi*8], 0",
+    "0x5012aa: pop esi"
+   ]
+  },
+  {
+   "id": "slots.L_5018a4",
+   "group": "slots",
+   "kind": "imm",
+   "va": 5249188,
+   "orig": "83f801",
+   "off": 2,
+   "size": 1,
+   "expr": "N-1",
+   "why": "slot index bound: cmp eax, 1; ja invalid"
+  },
+  {
+   "id": "slots.A_5018b5",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5249205,
+   "orig": "8d4cd03851",
+   "steal": 5,
+   "cave": "8d8cd06860030051e900000000",
+   "fixups": [
+    [
+     9,
+     5249210
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [eax + edx*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     5249209,
+     7,
+     1
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x5018b5: lea ecx, [eax + edx*8 + 0x38]",
+    "0x5018b9: push ecx"
+   ]
+  },
+  {
+   "id": "slots.C_501d0d",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5250317,
+   "orig": "833cf2007424",
+   "steal": 6,
+   "cave": "83bcf230600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     5250359
+    ],
+    [
+     15,
+     5250323
+    ]
+   ],
+   "why": "C:slot+0x10: cmp dword ptr [edx + esi*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x501d0d: cmp dword ptr [edx + esi*8], 0",
+    "0x501d11: je 0x501d37"
+   ]
+  },
+  {
+   "id": "slots.K_502227",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5251623,
+   "orig": "8d44243883c418",
+   "steal": 7,
+   "cave": "8d84246860030083c418e900000000",
+   "fixups": [
+    [
+     11,
+     5251630
+    ]
+   ],
+   "why": "K:base+0x38: lea eax, [esp + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     5251627,
+     7,
+     3
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x502227: lea eax, [esp + 0x38]",
+    "0x50222b: add esp, 0x18"
+   ]
+  },
+  {
+   "id": "slots.C_502587",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5252487,
+   "orig": "833cf2005e",
+   "steal": 5,
+   "cave": "83bcf230600300005ee900000000",
+   "fixups": [
+    [
+     10,
+     5252492
+    ]
+   ],
+   "why": "C:slot+0x10: cmp dword ptr [edx + esi*8], 0 (+0x36030)",
+   "verbatim": [
+    [
+     5252491,
+     8,
+     1
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x502587: cmp dword ptr [edx + esi*8], 0",
+    "0x50258b: pop esi"
+   ]
+  },
+  {
+   "id": "slots.C_502637",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5252663,
+   "orig": "833cfa005f",
+   "steal": 5,
+   "cave": "83bcfa30600300005fe900000000",
+   "fixups": [
+    [
+     10,
+     5252668
+    ]
+   ],
+   "why": "C:slot+0x10: cmp dword ptr [edx + edi*8], 0 (+0x36030)",
+   "verbatim": [
+    [
+     5252667,
+     8,
+     1
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x502637: cmp dword ptr [edx + edi*8], 0",
+    "0x50263b: pop edi"
+   ]
+  },
+  {
+   "id": "slots.C_502697",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5252759,
+   "orig": "833cfa005f",
+   "steal": 5,
+   "cave": "83bcfa30600300005fe900000000",
+   "fixups": [
+    [
+     10,
+     5252764
+    ]
+   ],
+   "why": "C:slot+0x10: cmp dword ptr [edx + edi*8], 0 (+0x36030)",
+   "verbatim": [
+    [
+     5252763,
+     8,
+     1
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x502697: cmp dword ptr [edx + edi*8], 0",
+    "0x50269b: pop edi"
+   ]
+  },
+  {
+   "id": "slots.C_502719",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5252889,
+   "orig": "833cf200741a",
+   "steal": 6,
+   "cave": "83bcf230600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     5252921
+    ],
+    [
+     15,
+     5252895
+    ]
+   ],
+   "why": "C:slot+0x10: cmp dword ptr [edx + esi*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x502719: cmp dword ptr [edx + esi*8], 0",
+    "0x50271d: je 0x502739"
+   ]
+  },
+  {
+   "id": "slots.K_503c48",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5258312,
+   "orig": "8d742438e84f07f4ff",
+   "steal": 9,
+   "cave": "8db42468600300e800000000e900000000",
+   "fixups": [
+    [
+     8,
+     4473760
+    ],
+    [
+     13,
+     5258321
+    ]
+   ],
+   "why": "K:base+0x38: lea esi, [esp + 0x38] (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x503c48: lea esi, [esp + 0x38]",
+    "0x503c4c: call 0x4443a0"
+   ]
+  },
+  {
+   "id": "slots.B_503f33",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5259059,
+   "orig": "833cc2007407",
+   "steal": 6,
+   "cave": "83bcc230600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     5259072
+    ],
+    [
+     15,
+     5259065
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [edx + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x503f33: cmp dword ptr [edx + eax*8], 0",
+    "0x503f37: je 0x503f40"
+   ]
+  },
+  {
+   "id": "slots.B_52db4e",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5430094,
+   "orig": "3914c17409",
+   "steal": 5,
+   "cave": "3994c1306003000f8400000000e900000000",
+   "fixups": [
+    [
+     9,
+     5430108
+    ],
+    [
+     14,
+     5430099
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ecx + eax*8], edx (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x52db4e: cmp dword ptr [ecx + eax*8], edx",
+    "0x52db51: je 0x52db5c"
+   ]
+  },
+  {
+   "id": "slots.B_52e44b",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5432395,
+   "orig": "391cc27416",
+   "steal": 5,
+   "cave": "399cc2306003000f8400000000e900000000",
+   "fixups": [
+    [
+     9,
+     5432422
+    ],
+    [
+     14,
+     5432400
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [edx + eax*8], ebx (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x52e44b: cmp dword ptr [edx + eax*8], ebx",
+    "0x52e44e: je 0x52e466"
+   ]
+  },
+  {
+   "id": "slots.B_52e718",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5433112,
+   "orig": "833cc7007538",
+   "steal": 6,
+   "cave": "83bcc730600300000f8500000000e900000000",
+   "fixups": [
+    [
+     10,
+     5433174
+    ],
+    [
+     15,
+     5433118
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [edi + eax*8], 0 (+0x36030)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x52e718: cmp dword ptr [edi + eax*8], 0",
+    "0x52e71c: jne 0x52e756"
+   ]
+  },
+  {
+   "id": "slots.L_53634a",
+   "group": "slots",
+   "kind": "imm",
+   "va": 5464906,
+   "orig": "83f801",
+   "off": 2,
+   "size": 1,
+   "expr": "N-1",
+   "why": "slot index bound: cmp eax, 1; ja invalid"
+  },
+  {
+   "id": "slots.A_536353",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5464915,
+   "orig": "8d4cc13851",
+   "steal": 5,
+   "cave": "8d8cc16860030051e900000000",
+   "fixups": [
+    [
+     9,
+     5464920
+    ]
+   ],
+   "why": "A:slot+0x0: lea ecx, [ecx + eax*8 + 0x38] (+0x36030)",
+   "verbatim": [
+    [
+     5464919,
+     7,
+     1
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x536353: lea ecx, [ecx + eax*8 + 0x38]",
+    "0x536357: push ecx"
+   ]
+  },
+  {
+   "id": "slots.session_alloc_4b18b5",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4921525,
+   "orig": "6858600300",
+   "off": 1,
+   "size": 4,
+   "expr": "0x36068+N*0x18",
+   "why": "operator new(sizeof(Session)) grown to hold slots[N]"
+  },
+  {
+   "id": "slots.session_alloc_4b19b7",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4921783,
+   "orig": "6858600300",
+   "off": 1,
+   "size": 4,
+   "expr": "0x36068+N*0x18",
+   "why": "operator new(sizeof(Session)) grown to hold slots[N]"
+  },
+  {
+   "id": "slots.session_alloc_4b1bf8",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4922360,
+   "orig": "6858600300",
+   "off": 1,
+   "size": 4,
+   "expr": "0x36068+N*0x18",
+   "why": "operator new(sizeof(Session)) grown to hold slots[N]"
+  },
+  {
+   "id": "slots.invalid_slot_sentinel",
+   "group": "slots",
+   "kind": "imm",
+   "va": 4922629,
+   "orig": "c7050cd1b90002000000",
+   "off": 6,
+   "size": 4,
+   "expr": "N",
+   "why": "g_pendingSlot = 2 (== old MAX_SLOTS, used as 'none')"
+  },
+  {
+   "id": "slots.hook_session_init",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4922850,
+   "orig": "885e34885e68",
+   "steal": 6,
+   "cave": "609c56e80000000083c4049d61885e34885e68e900000000",
+   "fixups": [
+    [
+     4,
+     -1
+    ],
+    [
+     20,
+     4922856
+    ]
+   ],
+   "why": "after Session::Reset unrolled slot init: copy reset slot0 into new slots[0..N)",
+   "verbatim": [
+    [
+     4922850,
+     13,
+     3
+    ],
+    [
+     4922853,
+     16,
+     3
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1de2: mov byte ptr [esi + 0x34], bl",
+    "0x4b1de5: mov byte ptr [esi + 0x68], bl"
+   ]
+  },
+  {
+   "id": "slots.hook_session_deserialize",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4926454,
+   "orig": "e8b5091400",
+   "steal": 5,
+   "cave": "609c53e80000000083c4049d61e800000000e900000000",
+   "fixups": [
+    [
+     4,
+     -1
+    ],
+    [
+     14,
+     6239664
+    ],
+    [
+     19,
+     4926459
+    ]
+   ],
+   "why": "after Session::Deserialize unrolled slot reset: copy reset slot0 into new slots[0..N)",
+   "verbatim": [],
+   "cave_imms": [],
+   "asm": [
+    "0x4b2bf6: call 0x5f35b0"
+   ]
+  },
+  {
+   "id": "economy.net_money_factor",
+   "group": "economy",
+   "kind": "float",
+   "va": 8747024,
+   "orig": "0000003f",
+   "off": 0,
+   "size": 4,
+   "expr": "1.0/N",
+   "why": "default NetMoneyFactor (gold multiplier when connected); vanilla 0.5 == 1/2"
+  },
+  {
+   "id": "netfix.recv_drain_loop",
+   "group": "netfix",
+   "kind": "imm",
+   "va": 6302703,
+   "orig": "e9351b0000",
+   "off": 1,
+   "size": 4,
+   "expr": "-0xa8",
+   "why": "RunUpdateCycle: after one socket-override datagram, loop back to read the next instead of returning early (skipping ACK/resend processing). See docs/DISCONNECT_FIX_PROPOSAL.md"
+  }
+ ]
+}
