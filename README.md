@@ -20,6 +20,14 @@ rebalance for player count, and document the game so future mods can add charact
 
 Run all tests: `rea/venv/Scripts/python.exe tests/run_tests.py`.
 
+## Sending a build to testers
+`python tools/package.py` runs the tests, builds the Win32 loader and writes
+`build/package/omd2mp-<git describe>.zip`. Testers need no Python: they unzip it and run
+`install.bat` (finds the game through Steam), `collect-logs.bat` (zips `omd2mp.log` onto their
+Desktop to send back) and `uninstall.bat`. The packaged `omd2mp.ini` always has `[dev]` and
+`[mpdebug]` off. The tool refuses a tree with uncommitted changes (`--allow-dirty` overrides), so each zip
+maps to a commit. Everyone in a party must run the same zip. The tester scripts live in `dist/tester/`.
+
 ## Key findings (OrcsMustDie2.exe, TimeDateStamp 0x51DD91A9, fixed base 0x400000)
 - Networking: RakNet 4.0 (static, symbols exported) over Steam P2P via a `SocketLayerOverride`; Steam lobbies through a custom Lobby2 client.
 - Globals: `0xB9D0B8` RakPeer, `0xB9D0C0` Lobby2 msg factory, `0xB9D0C4` Steam Lobby2 client, `0xB9D0C8` FullyConnectedMesh2, `0xB9D0AD` is-host, `0xB9D108` Session.
@@ -45,6 +53,7 @@ python tests/run_tests.py
 cmake -S . -B build/msvc -G "Visual Studio 16 2019" -A Win32 && cmake --build build/msvc --config Release
 python mods/rebalance/build_rebalance.py --players 4
 python tools/install.py            # copies version.dll + omd2mp.ini into <Steam>/Orcs Must Die 2/build/game
+python tools/package.py            # tests + build + zip for human testers -> build/package/omd2mp-<git>.zip
 python tools/devcon.py soak --until-wave 40 --ready-up --log soak.jsonl   # needs [dev] enabled=1
 python tools/devcon.py skip --to 10 ; python tools/devcon.py cheat god on # cheats: CONTRIBUTING §12.6
 python tools/devcon.py mock                                  # mock players ([mpdebug] enabled=1): CONTRIBUTING §13
