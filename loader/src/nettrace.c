@@ -19,6 +19,7 @@
 #define RAKPEER_VTABLE   0x0083375Cu
 
 #define V_NUMCONN   9
+#define V_CONNECT   12
 #define V_SEND_BS   19
 #define V_SEND_RAW  20
 #define V_RECEIVE   23
@@ -49,6 +50,9 @@ typedef uint32_t(__fastcall *SendBsFn)(void *self, void *edx, const BitStream *b
 typedef uint32_t(__fastcall *SendRawFn)(void *self, void *edx, const char *data, int len, int prio, int rel,
                                         char chan, AOG target, char broadcast, uint32_t receipt);
 typedef Packet *(__fastcall *ReceiveFn)(void *self, void *edx);
+typedef int(__fastcall *ConnectFn)(void *self, void *edx, const char *host, uint16_t port, const char *pw,
+                                   int pwlen, void *pubkey, unsigned sock, unsigned attempts,
+                                   unsigned between_ms, uint32_t timeout_ms);
 
 static NetTraceConfig g_cfg;
 static FILE *g_f;
@@ -58,6 +62,7 @@ static NumConnFn o_numconn;
 static SendBsFn o_send_bs;
 static SendRawFn o_send_raw;
 static ReceiveFn o_receive;
+static ConnectFn o_connect;
 static uint32_t g_count[2][256];        // [0]=sent [1]=received, by message ID
 static uint32_t g_bytes[2][256];
 static uint32_t g_sum_count[2][256];    // at the last summary
@@ -255,6 +260,118 @@ static Packet *__fastcall h_receive(void *self, void *edx) {
     return p;
 }
 
+// RakPeer::Connect: only the client calls it (Session::Connect 0x4B1E00, from the join
+// handler 0x456980 once slots[localSlot].state == 1). No CONNECT line on a client that is
+// stuck on 'Connecting...' means the game never tried.
+static const char *connect_result(int r) {
+    switch (r) {
+    case 0: return "STARTED";
+    case 1: return "INVALID_PARAMETER";
+    case 2: return "CANNOT_RESOLVE_DOMAIN_NAME";
+    case 3: return "ALREADY_CONNECTED_TO_ENDPOINT";
+    case 4: return "ALREADY_IN_PROGRESS";
+    case 5: return "SECURITY_INITIALIZATION_FAILED";
+    }
+    return "?";
+}
+
+static int __fastcall h_connect(void *self, void *edx, const char *host, uint16_t port, const char *pw,
+                                int pwlen, void *pubkey, unsigned sock, unsigned attempts,
+                                unsigned between_ms, uint32_t timeout_ms) {
+    int r = o_connect(self, edx, host, port, pw, pwlen, pubkey, sock, attempts, between_ms, timeout_ms);
+    char h[64] = "?";
+    __try { if (host) { strncpy(h, host, sizeof h - 1); h[sizeof h - 1] = 0; } }
+    __except (EXCEPTION_EXECUTE_HANDLER) { strcpy(h, "<bad ptr>"); }
+    out("CONNECT %s:%u attempts=%u every=%ums -> %d %s", h, port, attempts, between_ms, r, connect_result(r));
+    snapshot(self, 1);
+    return r;
+}
+
+// ------------------------------------------------------------------ Lobby2 (Steam lobby) callbacks
+// The game's Lobby2Callbacks subclass (vtable 0x85E388) overrides four MessageResult slots;
+// every other slot is the default 0x52E810, which tail-jumps to slot 165. So hooking these
+// four sees every Lobby2 result the game gets. All are thiscall(msg), ret 4.
+//   19  0x456990  room join / member joined -> Session::Connect if client and slots[local].state==1
+//   61  0x456AD0  room invite accepted (Steam overlay invite) -> raw JoinRoom (0x4575B0) or,
+//                 with a session already up, just stores the lobby id at session+0x28
+//   64  0x456B10  room list/search result -> stores the first lobby id at 0xB9D0D0
+//   165 0x456BA0  default for every other message: leaves the session on a non-zero result
+// The build has no RTTI, so a message is identified by its vtable and by any
+// `mov eax, imm32; ret` getter in its first vtable entries (GetID).
+#define LOBBY2_CB_VTABLE 0x0085E388u
+typedef void(__fastcall *Lobby2CbFn)(void *self, void *edx, void *msg);
+static const int k_lobby_slots[] = {19, 61, 64, 165};
+static const char *const k_lobby_names[] = {"join/member", "invite", "search", "default"};
+static Lobby2CbFn o_lobby[4];
+
+static void lobby_log(int which, void *msg) {
+    char hex[3 * 0x70 + 1] = "";
+    char ids[96] = "";
+    char str[80] = "";
+    uint32_t vt = 0, result = 0;
+    int i, n = 0;
+    __try {
+        const uint8_t *m = (const uint8_t *)msg;
+        const uint32_t *v;
+        vt = *(const uint32_t *)m;
+        result = *(const uint32_t *)(m + 8);
+        for (i = 0; i < 0x70; i++) sprintf(hex + 3 * i, "%02x ", m[i]);
+        v = (const uint32_t *)(uintptr_t)vt;
+        for (i = 0; i < 12 && n < (int)sizeof ids - 16; i++) {
+            const uint8_t *f = (const uint8_t *)(uintptr_t)v[i];
+            if (f[0] == 0xB8 && f[5] == 0xC3)
+                n += sprintf(ids + n, " vt%d=%u", i, *(const uint32_t *)(f + 1));
+        }
+        if (k_lobby_slots[which] == 19) {
+            // msg+0x5C is a RakString {SharedString*}; c_str at SharedString+0x10
+            const uint8_t *ss = *(const uint8_t *const *)(m + 0x5C);
+            const char *c = ss ? *(const char *const *)(ss + 0x10) : NULL;
+            if (c) { strncpy(str, c, sizeof str - 1); str[sizeof str - 1] = 0; }
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        strcpy(str, "<read faulted>");
+    }
+    out("LOBBY2 cb%d %s msg=%p vt=%#x result=%u%s%s%s%s", k_lobby_slots[which], k_lobby_names[which],
+        msg, vt, result, ids, str[0] ? " addr='" : "", str, str[0] ? "'" : "");
+    out("  msg: %s", hex);
+}
+
+static void lobby_hook(int which, void *self, void *msg) {
+    uint8_t *ses = NULL;
+    lobby_log(which, msg);
+    __try { ses = *(uint8_t **)(uintptr_t)SESSION_GLOBAL; } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    if (k_lobby_slots[which] == 61)
+        out("  invite path: %s", ses ? "session exists -> lobby id stored at session+0x28 only"
+                                     : "no session -> raw JoinRoom via 0x4575B0");
+    snapshot(*(void **)(uintptr_t)RAKPEER_GLOBAL, 1);
+    o_lobby[which](self, NULL, msg);
+    out("  after cb%d:", k_lobby_slots[which]);
+    snapshot(*(void **)(uintptr_t)RAKPEER_GLOBAL, 1);
+}
+
+static void __fastcall h_lobby0(void *s, void *e, void *m) { (void)e; lobby_hook(0, s, m); }
+static void __fastcall h_lobby1(void *s, void *e, void *m) { (void)e; lobby_hook(1, s, m); }
+static void __fastcall h_lobby2(void *s, void *e, void *m) { (void)e; lobby_hook(2, s, m); }
+static void __fastcall h_lobby3(void *s, void *e, void *m) { (void)e; lobby_hook(3, s, m); }
+static const Lobby2CbFn k_lobby_hooks[4] = {h_lobby0, h_lobby1, h_lobby2, h_lobby3};
+
+static void lobby_install(void) {
+    uint32_t *vt = (uint32_t *)(uintptr_t)LOBBY2_CB_VTABLE;
+    DWORD old;
+    int i;
+    if (!VirtualProtect(vt, 4 * 166, PAGE_READWRITE, &old)) {
+        out("LOBBY2 hooks: VirtualProtect failed");
+        return;
+    }
+    for (i = 0; i < 4; i++) {
+        o_lobby[i] = (Lobby2CbFn)(uintptr_t)vt[k_lobby_slots[i]];
+        vt[k_lobby_slots[i]] = (uint32_t)(uintptr_t)k_lobby_hooks[i];
+    }
+    VirtualProtect(vt, 4 * 166, old, &old);
+    out("LOBBY2 hooks on: cb19=%#x cb61=%#x cb64=%#x cb165=%#x", (uint32_t)(uintptr_t)o_lobby[0],
+        (uint32_t)(uintptr_t)o_lobby[1], (uint32_t)(uintptr_t)o_lobby[2], (uint32_t)(uintptr_t)o_lobby[3]);
+}
+
 // ------------------------------------------------------------------ install
 int nettrace_start(const NetTraceConfig *cfg) {
     uint32_t *vt = (uint32_t *)(uintptr_t)RAKPEER_VTABLE;
@@ -275,14 +392,17 @@ int nettrace_start(const NetTraceConfig *cfg) {
     o_send_bs = (SendBsFn)(uintptr_t)vt[V_SEND_BS];
     o_send_raw = (SendRawFn)(uintptr_t)vt[V_SEND_RAW];
     o_receive = (ReceiveFn)(uintptr_t)vt[V_RECEIVE];
+    o_connect = (ConnectFn)(uintptr_t)vt[V_CONNECT];
     vt[V_SEND_BS] = (uint32_t)(uintptr_t)h_send_bs;
     vt[V_SEND_RAW] = (uint32_t)(uintptr_t)h_send_raw;
     vt[V_RECEIVE] = (uint32_t)(uintptr_t)h_receive;
+    vt[V_CONNECT] = (uint32_t)(uintptr_t)h_connect;
     VirtualProtect(vt, 4 * (V_RECEIVE + 1), old, &old);
     out("nettrace on: full=%d every=%d summary_s=%d snapshot_ms=%d slots=%d @%#x "
         "(chained send_bs=%#x send_raw=%#x receive=%#x)", g_cfg.full, g_cfg.every, g_cfg.summary_s,
         g_cfg.snapshot_ms, g_cfg.slot_count, g_cfg.slot_new_base, (uint32_t)(uintptr_t)o_send_bs,
         (uint32_t)(uintptr_t)o_send_raw, (uint32_t)(uintptr_t)o_receive);
+    lobby_install();
     g_cfg.log("nettrace: writing %s", g_cfg.path);
     return 1;
 }

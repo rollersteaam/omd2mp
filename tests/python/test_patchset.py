@@ -57,6 +57,17 @@ class Structure(unittest.TestCase):
         for a in (0x4B2600, 0x4B2608, 0x4B2631, 0x4B2639, 0x4B2643, 0x4B2652, 0x4B2E0A, 0x4B2E20):
             self.assertTrue(covered(a), f"slots[0] access {a:#x} not relocated")
 
+    def test_local_slot_state_reads_relocated(self):
+        """`add eax,3; lea edx,[eax+eax*2]; [S+edx*8]` reads slots[localSlot].state with the +3
+        on the source register. Missing these left the client's join gate (0x456A7E:
+        state == 1 -> Session::Connect) reading the old, empty array, so a real client never
+        called RakPeer::Connect and sat on 'Connecting...' with no traffic at all."""
+        spans = [(p["va"], p["va"] + len(p["orig"]) // 2) for p in PATCHES]
+        covered = lambda a: any(lo <= a < hi for lo, hi in spans)
+        for a in (0x456A7E, 0x4B1C39, 0x4B1E90, 0x4B3DB9, 0x502C9C, 0x5034AB, 0x503A84,
+                  0x503B8D, 0x503D63, 0x5041AD):
+            self.assertTrue(covered(a), f"slots[localSlot].state read {a:#x} not relocated")
+
     def test_no_overlapping_sites(self):
         spans = sorted((p["va"], p["va"] + len(p["orig"]) // 2, p["id"]) for p in PATCHES)
         for (a0, a1, i), (b0, b1, j) in zip(spans, spans[1:]):

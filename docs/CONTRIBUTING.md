@@ -625,9 +625,29 @@ writes three kinds of line:
   localSlot, playerCount, and every slot (guid, state, flags) in both the vanilla array
   (`old[]`, +0x38) and the relocated one (`new[]`, +0x36068). A slot that changes only in
   `old[]` is a site the patch set missed.
-- `COUNT`: messages per ID over the last `summary_s=` seconds, so silence is visible too.
+- `COUNT`: messages per ID over the last `summary_s=` seconds. A summary is written only
+  when something was sent or received, so a log with no `COUNT` lines had no traffic at all.
+- `CONNECT`: every RakPeer::Connect call (vtable slot 12), with its address and result. Only
+  a client connects: the join handler (`0x456980`) calls Session::Connect (`0x4B1E00`) once
+  the Steam lobby join is done and `slots[localSlot].state == 1`.
+- `LOBBY2`: every Steam lobby (Lobby2) result the game handles. The game's
+  Lobby2Callbacks subclass (vtable `0x85E388`) overrides four slots: 19 (`0x456990`,
+  room join / member joined → Session::Connect), 61 (`0x456AD0`, overlay invite
+  accepted), 64 (`0x456B10`, lobby search result) and 165 (`0x456BA0`). Every other slot
+  is the default `0x52E810`, which tail-jumps to slot 165, so the four hooks see every
+  result. Each line has the message vtable (the exe has no RTTI), `result`, any
+  `mov eax,imm; ret` getters among the first 12 vtable entries (the message ID), the
+  join address string for slot 19, and the first 0x70 bytes. It is followed by `SESSION`
+  snapshots taken before and after the game's handler runs. For slot 61 it also logs
+  the path taken: with no Session the game only sends a raw JoinRoom (`0x4575B0`); with
+  one, it only stores the lobby id at session+0x28.
 
 Reading a failed join: the host should log `RECV NEW_INCOMING_CONNECTION`, a `new[1]` slot
 with the client's GUID, and then `SEND game:SESSION_DATA` (0x83) to that GUID. The client
 should log `RECV CONNECTION_REQUEST_ACCEPTED`, then the 0x83, then a `SESSION` with its own
 `localSlot`. The first step that is missing on either side is where to look.
+
+A client with a `SESSION CLIENT` slot at `state=1` and no `CONNECT` line never tried to
+connect. That happened when the join gate's `slots[localSlot].state` read (`0x456A7E`,
+`add eax,3; lea edx,[eax+eax*2]; cmp [ecx+edx*8],1`) still pointed at the old array:
+`slotscan.py` only looked for the `+3` on the index register, not on its source.

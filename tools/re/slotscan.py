@@ -70,13 +70,14 @@ def classify(ins, k, idx):
         if not ops.startswith(idx + ","):
             continue
         if mn == "lea":
-            if re.fullmatch(rf"{idx}, \[(e\w\w) \+ \1\*2\]", ops):
-                # was the source pre-incremented by 3 (shape B)?
-                return "x3"
-            if re.fullmatch(rf"{idx}, \[(e\w\w) \+ \1\*2 \+ 9\]", ops):
-                return "x3+9"
-        return None
-    return None
+            m = re.fullmatch(rf"{idx}, \[(e\w\w) \+ \1\*2\]", ops)
+            if m:
+                return "x3", m.group(1)
+            m = re.fullmatch(rf"{idx}, \[(e\w\w) \+ \1\*2 \+ 9\]", ops)
+            if m:
+                return "x3+9", m.group(1)
+        return None, None
+    return None, None
 
 
 def main():
@@ -107,10 +108,14 @@ def main():
         m = MEM.search(ops)
         if m:
             base, idx, disp = m.group(1), m.group(2), int(m.group(3) or "0", 16)
-            prov = classify(ins, k, idx)
+            prov, src = classify(ins, k, idx)
             if prov:
-                # was idx (+3)'d just before the lea? (shape B)
-                plus3 = any(w[2] == "add" and w[3] == f"{idx}, 3" for w in ins[max(0, k - 8):k])
+                # shape B: the slot index was (+3)'d before `lea idx,[src+src*2]`. The add can
+                # be on the source register (`add eax,3; lea edx,[eax+eax*2]; [ecx+edx*8]`);
+                # checking only idx missed the client join gate at 0x456A7E (slots[local].state
+                # == 1 -> Session::Connect) and Session::Connect's own check at 0x4B1E90.
+                plus3 = any(w[2] == "add" and w[3] in (f"{idx}, 3", f"{src}, 3")
+                            for w in ins[max(0, k - 8):k])
                 if prov == "x3" and SLOT_LO <= disp < SLOT_HI:
                     kind = f"A:slot+{disp - 0x38:#x}"
                 elif prov == "x3" and disp == 0 and plus3:

@@ -90,6 +90,39 @@
    ]
   },
   {
+   "id": "slots.B_456a7e",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4549246,
+   "orig": "833cd101750a",
+   "steal": 6,
+   "cave": "83bcd130600300010f8500000000e900000000",
+   "fixups": [
+    [
+     10,
+     4549262
+    ],
+    [
+     15,
+     4549252
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ecx + edx*8], 1 (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     4549246,
+     0,
+     8
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x456a7e: cmp dword ptr [ecx + edx*8], 1",
+    "0x456a82: jne 0x456a8e"
+   ]
+  },
+  {
    "id": "slots.B_456bf4",
    "group": "slots",
    "kind": "tramp",
@@ -922,6 +955,41 @@
    ]
   },
   {
+   "id": "slots.B_4b1c39",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4922425,
+   "orig": "8b04cf893d08d1b900",
+   "steal": 9,
+   "cave": "8b84cf30600300893d08d1b900e900000000",
+   "fixups": [
+    [
+     14,
+     4922434
+    ]
+   ],
+   "why": "B:slot+0x10: mov eax, dword ptr [edi + ecx*8] (+0x36030)",
+   "verbatim": [
+    [
+     4922428,
+     7,
+     6
+    ]
+   ],
+   "rewritten": [
+    [
+     4922425,
+     0,
+     7
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1c39: mov eax, dword ptr [edi + ecx*8]",
+    "0x4b1c3c: mov dword ptr [0xb9d108], edi"
+   ]
+  },
+  {
    "id": "slots.A_4b1c65",
    "group": "slots",
    "kind": "tramp",
@@ -989,6 +1057,41 @@
    "asm": [
     "0x4b1c98: mov edx, dword ptr [edi + ecx*8]",
     "0x4b1c9b: mov dword ptr [esp + 0x18], eax"
+   ]
+  },
+  {
+   "id": "slots.B_4b1e90",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4923024,
+   "orig": "8b04d18bf9",
+   "steal": 5,
+   "cave": "8b84d1306003008bf9e900000000",
+   "fixups": [
+    [
+     10,
+     4923029
+    ]
+   ],
+   "why": "B:slot+0x10: mov eax, dword ptr [ecx + edx*8] (+0x36030)",
+   "verbatim": [
+    [
+     4923027,
+     7,
+     2
+    ]
+   ],
+   "rewritten": [
+    [
+     4923024,
+     0,
+     7
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b1e90: mov eax, dword ptr [ecx + edx*8]",
+    "0x4b1e93: mov edi, ecx"
    ]
   },
   {
@@ -2792,6 +2895,41 @@
    ]
   },
   {
+   "id": "slots.B_4b3db9",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 4931001,
+   "orig": "8b1ccf85db",
+   "steal": 5,
+   "cave": "8b9ccf3060030085dbe900000000",
+   "fixups": [
+    [
+     10,
+     4931006
+    ]
+   ],
+   "why": "B:slot+0x10: mov ebx, dword ptr [edi + ecx*8] (+0x36030)",
+   "verbatim": [
+    [
+     4931004,
+     7,
+     2
+    ]
+   ],
+   "rewritten": [
+    [
+     4931001,
+     0,
+     7
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x4b3db9: mov ebx, dword ptr [edi + ecx*8]",
+    "0x4b3dbc: test ebx, ebx"
+   ]
+  },
+  {
    "id": "slots.A_4b3dda",
    "group": "slots",
    "kind": "tramp",
@@ -3311,6 +3449,166 @@
    ]
   },
   {
+   "id": "slots.B_502c9c",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5254300,
+   "orig": "837ccd0000",
+   "steal": 5,
+   "cave": "83bccd3060030000e900000000",
+   "fixups": [
+    [
+     9,
+     5254305
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ebp + ecx*8], 0 (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     5254300,
+     0,
+     8
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x502c9c: cmp dword ptr [ebp + ecx*8], 0"
+   ]
+  },
+  {
+   "id": "slots.B_5034ab",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5256363,
+   "orig": "833cd3007407",
+   "steal": 6,
+   "cave": "83bcd330600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     5256376
+    ],
+    [
+     15,
+     5256369
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ebx + edx*8], 0 (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     5256363,
+     0,
+     8
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x5034ab: cmp dword ptr [ebx + edx*8], 0",
+    "0x5034af: je 0x5034b8"
+   ]
+  },
+  {
+   "id": "slots.B_503a84",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5257860,
+   "orig": "833cd3007407",
+   "steal": 6,
+   "cave": "83bcd330600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     5257873
+    ],
+    [
+     15,
+     5257866
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ebx + edx*8], 0 (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     5257860,
+     0,
+     8
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x503a84: cmp dword ptr [ebx + edx*8], 0",
+    "0x503a88: je 0x503a91"
+   ]
+  },
+  {
+   "id": "slots.B_503b8d",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5258125,
+   "orig": "833cd3007407",
+   "steal": 6,
+   "cave": "83bcd330600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     5258138
+    ],
+    [
+     15,
+     5258131
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ebx + edx*8], 0 (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     5258125,
+     0,
+     8
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x503b8d: cmp dword ptr [ebx + edx*8], 0",
+    "0x503b91: je 0x503b9a"
+   ]
+  },
+  {
+   "id": "slots.B_503d63",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5258595,
+   "orig": "833cd3007407",
+   "steal": 6,
+   "cave": "83bcd330600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     5258608
+    ],
+    [
+     15,
+     5258601
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ebx + edx*8], 0 (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     5258595,
+     0,
+     8
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x503d63: cmp dword ptr [ebx + edx*8], 0",
+    "0x503d67: je 0x503d70"
+   ]
+  },
+  {
    "id": "slots.B_503f33",
    "group": "slots",
    "kind": "tramp",
@@ -3341,6 +3639,39 @@
    "asm": [
     "0x503f33: cmp dword ptr [edx + eax*8], 0",
     "0x503f37: je 0x503f40"
+   ]
+  },
+  {
+   "id": "slots.B_5041ad",
+   "group": "slots",
+   "kind": "tramp",
+   "va": 5259693,
+   "orig": "833cd1007407",
+   "steal": 6,
+   "cave": "83bcd130600300000f8400000000e900000000",
+   "fixups": [
+    [
+     10,
+     5259706
+    ],
+    [
+     15,
+     5259699
+    ]
+   ],
+   "why": "B:slot+0x10: cmp dword ptr [ecx + edx*8], 0 (+0x36030)",
+   "verbatim": [],
+   "rewritten": [
+    [
+     5259693,
+     0,
+     8
+    ]
+   ],
+   "cave_imms": [],
+   "asm": [
+    "0x5041ad: cmp dword ptr [ecx + edx*8], 0",
+    "0x5041b1: je 0x5041ba"
    ]
   },
   {
